@@ -5,6 +5,7 @@ export interface AppSettings {
   customModel: string;
   useCustomModel: boolean;
   apiKey: string;
+  preamble: string;
 }
 
 const DEFAULTS: AppSettings = {
@@ -12,6 +13,7 @@ const DEFAULTS: AppSettings = {
   customModel: "",
   useCustomModel: false,
   apiKey: "",
+  preamble: "",
 };
 
 export function loadSettings(): AppSettings {

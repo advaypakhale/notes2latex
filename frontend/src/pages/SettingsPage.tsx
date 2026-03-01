@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/settings";
+import { fetchDefaultPreamble } from "@/lib/api";
 
 const MODELS = [
   {
@@ -60,6 +62,22 @@ export function SettingsPage() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [saved, setSaved] = useState(false);
+  const [defaultPreamble, setDefaultPreamble] = useState<string>("");
+
+  useEffect(() => {
+    fetchDefaultPreamble()
+      .then((preamble) => {
+        setDefaultPreamble(preamble);
+        // If no custom preamble is set yet, populate with the default
+        setSettings((prev) => {
+          if (!prev.preamble) {
+            return { ...prev, preamble };
+          }
+          return prev;
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   const update = (patch: Partial<AppSettings>) => {
     setSettings((prev) => ({ ...prev, ...patch }));
@@ -150,6 +168,39 @@ export function SettingsPage() {
             <p className="text-xs text-muted-foreground">
               Your key is stored only in this browser and sent directly to the
               provider. Leave blank to use server defaults.
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Preamble editor */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>LaTeX Preamble</Label>
+              {defaultPreamble && settings.preamble !== defaultPreamble && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    update({ preamble: defaultPreamble });
+                  }}
+                >
+                  <RotateCcw className="mr-1 h-3 w-3" />
+                  Reset to Default
+                </Button>
+              )}
+            </div>
+            <Textarea
+              className="font-mono text-xs leading-relaxed min-h-[320px] resize-y"
+              value={settings.preamble}
+              onChange={(e) => update({ preamble: e.target.value })}
+              spellCheck={false}
+            />
+            <p className="text-xs text-muted-foreground">
+              Customize the LaTeX preamble used for all conversions. Add your
+              own <code>\newcommand</code> definitions, packages, and theorem
+              styles.
             </p>
           </div>
 

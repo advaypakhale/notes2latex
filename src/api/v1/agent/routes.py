@@ -9,19 +9,27 @@ from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
-from agent.config import AgentConfig
+from agent.config import AgentConfig, DEFAULT_PREAMBLE
 from agent.graph import run_pipeline
 from agent.progress import EventType, ProgressEvent
-from api.v1.agent.models import ConvertRequest, JobResponse
+from agent.utils.page_markers import PAGE_MARKER_RE
+from api.v1.agent.models import (
+    ConvertRequest,
+    JobResponse,
+    PageInfo,
+    PageLatexResponse,
+    PagesResponse,
+)
 from core.config import get_settings
 from db.engine import engine, get_session
 from db.repository import JobRepository
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
+preamble_router = APIRouter(prefix="/preamble", tags=["preamble"])
 
 JOBS_DIR = Path("data/jobs")
 
@@ -107,6 +115,7 @@ async def create_job(
         api_key=req.api_key,
         max_retries=req.max_retries,
         dpi=req.dpi,
+        preamble=req.preamble,
         output_dir=output_dir,
     )
 
@@ -177,41 +186,8 @@ async def _run_job(
             await store.push(None)
 
 
-@router.get("", response_model=list[JobResponse])
-async def list_jobs(
-    session: AsyncSession = Depends(get_session),
-    limit: int = Query(50, ge=1, le=200),
-) -> list[JobResponse]:
-    """List recent jobs, newest first."""
-    repo = JobRepository(session)
-    jobs = await repo.list(limit=limit)
-    return [
-        JobResponse(
-            job_id=job.id,
-            status=job.status,
-            model=job.model,
-            total_pages=job.total_pages,
-            created_at=job.created_at,
-            completed_at=job.completed_at,
-            error_message=job.error_message,
-            input_filenames=json.loads(job.input_filenames),
-            has_pdf=job.has_pdf,
-            has_tex=job.has_tex,
-        )
-        for job in jobs
-    ]
-
-
-@router.get("/{job_id}", response_model=JobResponse)
-async def get_job(
-    job_id: str,
-    session: AsyncSession = Depends(get_session),
-) -> JobResponse:
-    """Get job status and details."""
-    repo = JobRepository(session)
-    job = await repo.get(job_id)
-    if job is None:
-        raise HTTPException(status_code=404, detail="Job not found")
+def _build_job_response(job) -> JobResponse:
+    """Convert a DB Job row into an API response."""
     return JobResponse(
         job_id=job.id,
         status=job.status,
@@ -224,6 +200,66 @@ async def get_job(
         has_pdf=job.has_pdf,
         has_tex=job.has_tex,
     )
+
+
+@router.get("", response_model=list[JobResponse])
+async def list_jobs(
+    session: AsyncSession = Depends(get_session),
+    limit: int = Query(50, ge=1, le=200),
+) -> list[JobResponse]:
+    """List recent jobs, newest first."""
+    repo = JobRepository(session)
+    jobs = await repo.list(limit=limit)
+    return [_build_job_response(job) for job in jobs]
+
+
+@router.get("/{job_id}", response_model=JobResponse)
+async def get_job(
+    job_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> JobResponse:
+    """Get job status and details."""
+    repo = JobRepository(session)
+    job = await repo.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return _build_job_response(job)
+
+
+@router.get("/{job_id}/pages", response_model=PagesResponse)
+async def get_job_pages(
+    job_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> PagesResponse:
+    """Return page metadata derived from the job's .tex file markers."""
+    repo = JobRepository(session)
+    job = await repo.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    total_pages = job.total_pages or 0
+
+    # Try to read the .tex file and find page markers
+    tex_path = _get_job_dir(job_id) / "output" / "output.tex"
+    pages_with_content: set[int] = set()
+    if tex_path.exists():
+        tex_content = tex_path.read_text(encoding="utf-8")
+        for match in PAGE_MARKER_RE.finditer(tex_content):
+            pages_with_content.add(int(match.group(1)))
+
+    # If we found markers, use the max marker as total_pages fallback
+    if pages_with_content and total_pages == 0:
+        total_pages = max(pages_with_content)
+
+    pages = [
+        PageInfo(
+            page_number=i,
+            has_content=i in pages_with_content,
+        )
+        for i in range(1, total_pages + 1)
+    ]
+
+    return PagesResponse(total_pages=total_pages, pages=pages)
 
 
 @router.get("/{job_id}/events")
@@ -286,3 +322,64 @@ async def download_file(
     if download:
         return FileResponse(file_path, filename=filename, media_type=media_type)
     return FileResponse(file_path, media_type=media_type)
+
+
+@preamble_router.get("/default", response_class=PlainTextResponse)
+async def get_default_preamble() -> str:
+    """Return the default LaTeX preamble."""
+    return DEFAULT_PREAMBLE
+
+
+# ---------------------------------------------------------------------------
+# Page-level endpoints (for side-by-side review)
+# ---------------------------------------------------------------------------
+
+
+def _split_latex_by_page(tex_source: str) -> dict[int, str]:
+    """Split a full .tex source into per-page LaTeX using page markers.
+
+    Returns a dict mapping page number (1-based) to that page's body content.
+    """
+    markers = list(PAGE_MARKER_RE.finditer(tex_source))
+    if not markers:
+        return {1: tex_source}
+
+    pages: dict[int, str] = {}
+    for i, match in enumerate(markers):
+        page_num = int(match.group(1))
+        start = match.end()
+        end = markers[i + 1].start() if i + 1 < len(markers) else len(tex_source)
+        pages[page_num] = tex_source[start:end].strip()
+    return pages
+
+
+@router.get("/{job_id}/pages/{page_number}/image")
+async def get_page_image(job_id: str, page_number: int) -> FileResponse:
+    """Serve the preprocessed page image (PNG) for a specific page."""
+    pages_dir = _get_job_dir(job_id) / "output" / "pages"
+    image_path = pages_dir / f"page_{page_number:03d}.png"
+
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail=f"Page {page_number} image not found")
+
+    return FileResponse(image_path, media_type="image/png")
+
+
+@router.get("/{job_id}/pages/{page_number}/latex", response_model=PageLatexResponse)
+async def get_page_latex(job_id: str, page_number: int) -> PageLatexResponse:
+    """Return the LaTeX source for a specific page, extracted via page markers."""
+    tex_path = _get_job_dir(job_id) / "output" / "output.tex"
+    if not tex_path.exists():
+        raise HTTPException(status_code=404, detail="No .tex output found for this job")
+
+    tex_source = tex_path.read_text(encoding="utf-8")
+    pages = _split_latex_by_page(tex_source)
+
+    if page_number not in pages:
+        raise HTTPException(status_code=404, detail=f"Page {page_number} not found in LaTeX source")
+
+    return PageLatexResponse(
+        job_id=job_id,
+        page_number=page_number,
+        latex=pages[page_number],
+    )

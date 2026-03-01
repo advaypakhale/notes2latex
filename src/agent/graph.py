@@ -10,6 +10,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from agent.config import AgentConfig
 from agent.progress import EventType, ProgressCallback, ProgressEvent, emit, set_progress_callback
 from agent.state import PipelineState, get_config
+from agent.utils.page_markers import prepend_page_marker
 from agent.utils.text import strip_code_fences
 from clients.llm.client import acompletion
 from compiler.compiler import compile_latex
@@ -171,23 +172,19 @@ async def generate_latex_node(state: PipelineState) -> dict:
         open_envs=open_envs,
     )
 
-    # Pass body tail as context
-    context = accumulated_body if accumulated_body else ""
-
     latex = await transcribe_page(
         image_b64=page_b64,
         system_prompt=system_prompt,
         config=config,
-        context_latex=context,
+        context_latex=accumulated_body,
     )
 
     latex = strip_preamble_from_body(latex)
-    base = accumulated_body
-    new_body = (base + "\n" + latex) if base else latex
+    new_body = prepend_page_marker(page_idx + 1, latex, accumulated_body)
 
     return {
         "current_page_latex": latex,
-        "base_body": base,
+        "base_body": accumulated_body,
         "accumulated_body": new_body,
         "retry_count": 0,
     }
@@ -288,8 +285,7 @@ async def fix_latex_node(state: PipelineState) -> dict:
     )
 
     fixed_page = strip_preamble_from_body(fixed_page)
-    base = state["base_body"]
-    new_body = (base + "\n" + fixed_page) if base else fixed_page
+    new_body = prepend_page_marker(page_idx + 1, fixed_page, state["base_body"])
 
     return {
         "current_page_latex": fixed_page,
@@ -447,7 +443,9 @@ async def run_pipeline(
     if callback is not None:
         set_progress_callback(callback)
 
-    pages = load_pages(file_paths, config.dpi)
+    # Save page images alongside output for the review UI
+    pages_dir = config.output_dir / "pages"
+    pages = load_pages(file_paths, config.dpi, save_dir=pages_dir)
 
     logger.info("Loaded %d page(s) from %d file(s)", len(pages), len(file_paths))
 

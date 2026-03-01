@@ -1,6 +1,12 @@
-import type { JobResponse, ProgressEvent } from "./types";
+import type { JobResponse, PagesResponse, ProgressEvent } from "./types";
 
 const API_BASE = "/api/v1";
+
+export async function fetchDefaultPreamble(): Promise<string> {
+  const res = await fetch(`${API_BASE}/preamble/default`);
+  if (!res.ok) throw new Error("Failed to fetch default preamble");
+  return res.text();
+}
 
 export async function listJobs(): Promise<JobResponse[]> {
   const res = await fetch(`${API_BASE}/jobs`);
@@ -15,6 +21,7 @@ export async function createJob(
     api_key?: string;
     max_retries?: number;
     dpi?: number;
+    preamble?: string;
   },
 ): Promise<JobResponse> {
   const form = new FormData();
@@ -41,6 +48,12 @@ export async function fetchTexSource(jobId: string): Promise<string> {
   const res = await fetch(`${API_BASE}/jobs/${jobId}/download/output.tex`);
   if (!res.ok) throw new Error("Failed to fetch .tex source");
   return res.text();
+}
+
+export async function getJobPages(jobId: string): Promise<PagesResponse> {
+  const res = await fetch(`${API_BASE}/jobs/${jobId}/pages`);
+  if (!res.ok) throw new Error("Failed to fetch page info");
+  return res.json();
 }
 
 export function subscribeToJob(
@@ -93,4 +106,19 @@ export function downloadUrl(
 ): string {
   const base = `${API_BASE}/jobs/${jobId}/download/${filename}`;
   return forceDownload ? `${base}?download=true` : base;
+}
+
+export async function getPageLatex(
+  jobId: string,
+  pageNumber: number,
+): Promise<{ job_id: string; page_number: number; latex: string }> {
+  const res = await fetch(
+    `${API_BASE}/jobs/${jobId}/pages/${pageNumber}/latex`,
+  );
+  if (!res.ok) throw new Error("Failed to fetch page LaTeX");
+  return res.json();
+}
+
+export function pageImageUrl(jobId: string, pageNumber: number): string {
+  return `${API_BASE}/jobs/${jobId}/pages/${pageNumber}/image`;
 }

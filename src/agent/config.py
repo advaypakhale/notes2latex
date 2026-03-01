@@ -26,8 +26,12 @@ _SERIALIZABLE_FIELDS = frozenset(
         "latex_engine",
         "compile_timeout",
         "output_dir",
+        "preamble",
     }
 )
+
+
+DEFAULT_PREAMBLE = (_PROMPTS_DIR / "preamble.tex").read_text(encoding="utf-8")
 
 
 def _load_prompt(name: str) -> str:
@@ -60,9 +64,7 @@ class AgentConfig:
     compile_timeout: int = 60
 
     # Document settings (loaded from files)
-    preamble: str = field(
-        default_factory=lambda: (_PROMPTS_DIR / "preamble.tex").read_text(encoding="utf-8")
-    )
+    preamble: str = field(default_factory=lambda: DEFAULT_PREAMBLE)
 
     # Prompt templates (raw Jinja2 strings, overridable)
     transcribe_template: str = field(default_factory=lambda: _load_prompt("transcribe"))

@@ -150,8 +150,8 @@ class TestPipelineEndToEnd:
 
             result = await run_pipeline([img_path], config)
 
-        # accumulated_body should be body-only
-        assert result["accumulated_body"] == MOCK_BODY
+        # accumulated_body should contain page marker + body content
+        assert result["accumulated_body"] == f"% ====== Page 1 ======\n{MOCK_BODY}"
         # The assembled document passed to compile should include preamble
         compile_call_args = mock_compile.call_args_list[0][0][0]
         assert _DEFAULT_PREAMBLE in compile_call_args

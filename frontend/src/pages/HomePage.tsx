@@ -123,6 +123,7 @@ export function HomePage() {
       const res = await createJob(files, {
         model: model || undefined,
         api_key: settings.apiKey || undefined,
+        preamble: settings.preamble || undefined,
       });
       navigate(`/jobs/${res.job_id}`);
     } catch (err) {

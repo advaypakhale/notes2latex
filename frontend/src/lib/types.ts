@@ -20,6 +20,16 @@ export interface ProgressEvent {
   message: string;
 }
 
+export interface PageInfo {
+  page_number: number;
+  has_content: boolean;
+}
+
+export interface PagesResponse {
+  total_pages: number;
+  pages: PageInfo[];
+}
+
 export interface JobResponse {
   job_id: string;
   status: JobStatus;
