@@ -30,3 +30,4 @@ e2e-*.png
 # Frontend build artifacts
 frontend/node_modules/
 frontend/dist/
+.claude/worktrees/
