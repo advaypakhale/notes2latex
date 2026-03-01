@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sse_starlette.sse import EventSourceResponse
@@ -75,7 +75,7 @@ def _get_job_dir(job_id: str) -> Path:
 @router.post("", response_model=JobResponse)
 async def create_job(
     files: list[UploadFile],
-    config: str = "{}",
+    config: str = Form("{}"),
     session: AsyncSession = Depends(get_session),
 ) -> JobResponse:
     """Create a new conversion job.
