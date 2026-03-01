@@ -144,26 +144,10 @@ async def _run_job(
     store = _event_stores.get(job_id)
     output_dir = config.output_dir
 
-    # Events that trigger DB writes
-    _DB_EVENTS = {EventType.JOB_STARTED, EventType.JOB_COMPLETED, EventType.JOB_FAILED}
-
     async def callback(event: ProgressEvent) -> None:
         if store is not None:
             await store.push(event)
-        if event.event_type not in _DB_EVENTS:
-            return
-        async with AsyncSession(engine) as session:
-            repo = JobRepository(session)
-            if event.event_type == EventType.JOB_STARTED:
-                await repo.mark_processing(job_id, event.total_pages)
-            elif event.event_type == EventType.JOB_COMPLETED:
-                await repo.mark_completed(
-                    job_id,
-                    has_pdf=(output_dir / "output.pdf").exists(),
-                    has_tex=(output_dir / "output.tex").exists(),
-                )
-            elif event.event_type == EventType.JOB_FAILED:
-                await repo.mark_failed(job_id, event.message)
+        await _handle_db_event(job_id, event, output_dir)
 
     file_paths = sorted(input_dir.iterdir())
 
@@ -171,19 +155,29 @@ async def _run_job(
         await run_pipeline(file_paths, config, callback=callback)
     except Exception as exc:
         async with AsyncSession(engine) as session:
-            repo = JobRepository(session)
-            await repo.mark_failed(job_id, str(exc))
+            await JobRepository(session).mark_failed(job_id, str(exc))
         if store is not None:
-            await store.push(
-                ProgressEvent(
-                    event_type=EventType.JOB_FAILED,
-                    message=str(exc),
-                )
-            )
+            await store.push(ProgressEvent(event_type=EventType.JOB_FAILED, message=str(exc)))
     finally:
-        # Signal end of stream
         if store is not None:
             await store.push(None)
+
+
+async def _handle_db_event(job_id: str, event: ProgressEvent, output_dir: Path) -> None:
+    """Persist job status changes to the database."""
+    if event.event_type == EventType.JOB_STARTED:
+        async with AsyncSession(engine) as session:
+            await JobRepository(session).mark_processing(job_id, event.total_pages)
+    elif event.event_type == EventType.JOB_COMPLETED:
+        async with AsyncSession(engine) as session:
+            await JobRepository(session).mark_completed(
+                job_id,
+                has_pdf=(output_dir / "output.pdf").exists(),
+                has_tex=(output_dir / "output.tex").exists(),
+            )
+    elif event.event_type == EventType.JOB_FAILED:
+        async with AsyncSession(engine) as session:
+            await JobRepository(session).mark_failed(job_id, event.message)
 
 
 def _build_job_response(job) -> JobResponse:
@@ -239,13 +233,12 @@ async def get_job_pages(
 
     total_pages = job.total_pages or 0
 
-    # Try to read the .tex file and find page markers
+    # Read the .tex file and find page markers
     tex_path = _get_job_dir(job_id) / "output" / "output.tex"
     pages_with_content: set[int] = set()
     if tex_path.exists():
         tex_content = tex_path.read_text(encoding="utf-8")
-        for match in PAGE_MARKER_RE.finditer(tex_content):
-            pages_with_content.add(int(match.group(1)))
+        pages_with_content = {int(m.group(1)) for m in PAGE_MARKER_RE.finditer(tex_content)}
 
     # If we found markers, use the max marker as total_pages fallback
     if pages_with_content and total_pages == 0:

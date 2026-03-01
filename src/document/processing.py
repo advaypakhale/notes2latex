@@ -21,31 +21,26 @@ def assemble_document(body: str, preamble: str) -> str:
     return preamble + "\n" + body + "\n\\end{document}\n"
 
 
+_PREAMBLE_PREFIXES = (
+    r"\documentclass",
+    r"\usepackage",
+    r"\newtheorem",
+    r"\theoremstyle",
+    r"\pgfplotsset",
+    r"\geometry{",
+    r"\declaretheoremstyle",
+    r"\declaretheorem",
+)
+
+_PREAMBLE_EXACT = frozenset({r"\begin{document}", r"\end{document}"})
+
+
 def strip_preamble_from_body(latex: str) -> str:
     """Strip preamble lines that the model mistakenly includes in body-only output."""
-    lines = latex.splitlines()
     filtered = []
-    for line in lines:
+    for line in latex.splitlines():
         stripped = line.strip()
-        if stripped.startswith(r"\documentclass"):
-            continue
-        if stripped.startswith(r"\usepackage"):
-            continue
-        if stripped == r"\begin{document}":
-            continue
-        if stripped == r"\end{document}":
-            continue
-        if stripped.startswith(r"\newtheorem"):
-            continue
-        if stripped.startswith(r"\theoremstyle"):
-            continue
-        if stripped.startswith(r"\pgfplotsset"):
-            continue
-        if stripped.startswith(r"\geometry{"):
-            continue
-        if stripped.startswith(r"\declaretheoremstyle"):
-            continue
-        if stripped.startswith(r"\declaretheorem"):
+        if stripped.startswith(_PREAMBLE_PREFIXES) or stripped in _PREAMBLE_EXACT:
             continue
         filtered.append(line)
     return "\n".join(filtered)

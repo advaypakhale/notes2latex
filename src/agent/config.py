@@ -76,11 +76,11 @@ class AgentConfig:
 
     def to_state_dict(self) -> dict:
         """Serialize scalar/path fields for LangGraph state (excludes templates)."""
-        d = {}
-        for f in _SERIALIZABLE_FIELDS:
-            val = getattr(self, f)
-            d[f] = str(val) if isinstance(val, Path) else val
-        return d
+
+        def _serialize(val: object) -> object:
+            return str(val) if isinstance(val, Path) else val
+
+        return {f: _serialize(getattr(self, f)) for f in _SERIALIZABLE_FIELDS}
 
     @classmethod
     def from_settings(cls, settings: Settings, **overrides) -> AgentConfig:

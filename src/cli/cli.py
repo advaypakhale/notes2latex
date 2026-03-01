@@ -45,15 +45,16 @@ def convert(
     ] = None,
 ) -> None:
     """Convert handwritten math notes (images/PDFs) to compiled LaTeX."""
-    overrides: dict = {}
-    if model is not None:
-        overrides["model"] = model
-    if output_dir is not None:
-        overrides["output_dir"] = output_dir
-    if max_retries is not None:
-        overrides["max_retries"] = max_retries
-    if dpi is not None:
-        overrides["dpi"] = dpi
+    overrides = {
+        k: v
+        for k, v in {
+            "model": model,
+            "output_dir": output_dir,
+            "max_retries": max_retries,
+            "dpi": dpi,
+        }.items()
+        if v is not None
+    }
 
     settings = Settings(**overrides)
     config = AgentConfig.from_settings(settings)
@@ -70,11 +71,12 @@ def convert(
 
     result = asyncio.run(run_pipeline(files, config))
 
-    if result.get("output_pdf_path"):
-        console.print(f"[bold green]PDF:[/] {result['output_pdf_path']}")
     if result.get("output_tex_path"):
         console.print(f"[bold green]TeX:[/] {result['output_tex_path']}")
-    if not result.get("output_pdf_path"):
+
+    if result.get("output_pdf_path"):
+        console.print(f"[bold green]PDF:[/] {result['output_pdf_path']}")
+    else:
         console.print(
             "[bold yellow]Warning:[/] Compilation failed. "
             "LaTeX source was saved but no PDF was produced."

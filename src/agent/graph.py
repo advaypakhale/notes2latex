@@ -38,16 +38,10 @@ async def transcribe_page(
     context_latex: str = "",
 ) -> str:
     """Send a page image to the VLM and return LaTeX source."""
-    messages: list[dict] = [
-        {"role": "system", "content": system_prompt},
-    ]
-
     user_content: list[dict] = []
 
     if context_latex:
-        # Send only the last N lines of body as context to stay within token limits
-        lines = context_latex.splitlines()
-        tail = "\n".join(lines[-config.context_lines :])
+        tail = "\n".join(context_latex.splitlines()[-config.context_lines :])
         user_content.append(
             {
                 "type": "text",
@@ -59,24 +53,26 @@ async def transcribe_page(
             }
         )
 
-    user_content.append(
-        {
-            "type": "text",
-            "text": "Typeset the handwritten math notes in this image into LaTeX body content.",
-        }
-    )
-
-    user_content.append(
-        {
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/png;base64,{image_b64}",
-                "detail": "high",
+    user_content.extend(
+        [
+            {
+                "type": "text",
+                "text": "Typeset the handwritten math notes in this image into LaTeX body content.",
             },
-        }
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{image_b64}",
+                    "detail": "high",
+                },
+            },
+        ]
     )
 
-    messages.append({"role": "user", "content": user_content})
+    messages: list[dict] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_content},
+    ]
 
     text = await acompletion(
         model=config.model,
@@ -268,12 +264,10 @@ async def fix_latex_node(state: PipelineState) -> dict:
     base_lines = base_body.count("\n") + 1 if base_body else 0
     offset = preamble_lines + base_lines
 
-    adjusted_errors = []
-    for e in state["errors"]:
-        adjusted = dict(e)
-        if adjusted.get("line") is not None:
-            adjusted["line"] = max(1, adjusted["line"] - offset)
-        adjusted_errors.append(adjusted)
+    adjusted_errors = [
+        {**e, "line": max(1, e["line"] - offset)} if e.get("line") is not None else e
+        for e in state["errors"]
+    ]
 
     system_prompt = config.render_fix_errors_prompt()
 
@@ -339,18 +333,16 @@ async def finalize_node(state: PipelineState) -> dict:
         config.compile_timeout,
     )
 
+    # Save compiler log
+    if result.log_output:
+        (output_dir / "output.log").write_text(result.log_output, encoding="utf-8")
+
+    # Copy compiled PDF to output directory
     output_pdf = ""
     if result.pdf_path and result.pdf_path.exists():
         dest = output_dir / "output.pdf"
         shutil.copy2(result.pdf_path, dest)
         output_pdf = str(dest)
-
-    # Save compiler log
-    if result.log_output:
-        log_path = output_dir / "output.log"
-        log_path.write_text(result.log_output, encoding="utf-8")
-
-    if output_pdf:
         logger.info("PDF saved to %s", output_pdf)
     else:
         logger.warning("Final compilation failed — only .tex saved")

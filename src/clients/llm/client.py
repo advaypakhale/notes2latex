@@ -24,5 +24,6 @@ async def acompletion(
     }
     if api_key is not None:
         kwargs["api_key"] = api_key
+
     response = await litellm.acompletion(**kwargs)
     return response.choices[0].message.content

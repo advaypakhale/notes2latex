@@ -37,33 +37,32 @@ class JobRepository:
         return list(result.all())
 
     async def mark_processing(self, job_id: str, total_pages: int) -> None:
-        job = await self._session.get(Job, job_id)
+        job = await self._require_job(job_id)
         if job is None:
             return
         job.status = JobStatus.PROCESSING
         job.total_pages = total_pages
-        self._session.add(job)
         await self._session.commit()
 
     async def mark_completed(self, job_id: str, has_pdf: bool, has_tex: bool) -> None:
-        job = await self._session.get(Job, job_id)
+        job = await self._require_job(job_id)
         if job is None:
             return
         job.status = JobStatus.COMPLETED
         job.completed_at = datetime.now(timezone.utc)
         job.has_pdf = has_pdf
         job.has_tex = has_tex
-        self._session.add(job)
         await self._session.commit()
 
     async def mark_failed(self, job_id: str, error_message: str) -> None:
-        job = await self._session.get(Job, job_id)
-        if job is None:
-            return
-        if job.status == JobStatus.FAILED:
+        job = await self._require_job(job_id)
+        if job is None or job.status == JobStatus.FAILED:
             return
         job.status = JobStatus.FAILED
         job.completed_at = datetime.now(timezone.utc)
         job.error_message = error_message
-        self._session.add(job)
         await self._session.commit()
+
+    async def _require_job(self, job_id: str) -> Job | None:
+        """Fetch a job by ID, returning None if not found."""
+        return await self._session.get(Job, job_id)
