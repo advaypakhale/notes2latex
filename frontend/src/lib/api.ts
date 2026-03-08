@@ -22,6 +22,8 @@ export async function createJob(
     api_key?: string;
     max_retries?: number;
     dpi?: number;
+    temperature?: number;
+    max_tokens?: number;
     preamble?: string;
   },
 ): Promise<JobResponse> {

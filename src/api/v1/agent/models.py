@@ -10,8 +10,10 @@ from db.models import JobStatus
 class ConvertRequest(BaseModel):
     model: str = "openrouter/google/gemini-3-flash-preview"
     api_key: str | None = None
-    max_retries: int = 3
-    dpi: int = 300
+    max_retries: int | None = None
+    dpi: int | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
     preamble: str | None = None
 
 
