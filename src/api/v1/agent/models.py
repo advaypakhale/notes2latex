@@ -1,8 +1,9 @@
 """Pydantic request/response models for the agent API."""
 
 from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from db.models import JobStatus
 
@@ -31,6 +32,7 @@ class JobResponse(BaseModel):
     job_id: str
     status: JobStatus
     model: str = ""
+    model_settings: dict[str, Any] = Field(default_factory=dict)
     total_pages: int = 0
     created_at: datetime | None = None
     completed_at: datetime | None = None
