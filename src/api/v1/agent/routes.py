@@ -115,6 +115,8 @@ async def create_job(
         api_key=req.api_key,
         max_retries=req.max_retries,
         dpi=req.dpi,
+        temperature=req.temperature,
+        max_tokens=req.max_tokens,
         preamble=req.preamble,
         output_dir=output_dir,
     )

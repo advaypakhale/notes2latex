@@ -6,6 +6,10 @@ export interface AppSettings {
   useCustomModel: boolean;
   apiKey: string;
   preamble: string;
+  maxRetries: number | null;
+  dpi: number | null;
+  temperature: number | null;
+  maxTokens: number | null;
 }
 
 const DEFAULTS: AppSettings = {
@@ -14,6 +18,10 @@ const DEFAULTS: AppSettings = {
   useCustomModel: false,
   apiKey: "",
   preamble: "",
+  maxRetries: null,
+  dpi: null,
+  temperature: null,
+  maxTokens: null,
 };
 
 export function loadSettings(): AppSettings {

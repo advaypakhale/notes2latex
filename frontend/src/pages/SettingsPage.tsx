@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, RotateCcw } from "lucide-react";
+import { ArrowLeft, ExternalLink, RotateCcw, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -203,6 +203,112 @@ export function SettingsPage() {
               styles.
             </p>
           </div>
+
+          <Separator />
+
+          {/* Advanced settings */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium list-none">
+              <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+              Advanced
+            </summary>
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="max-retries" className="text-sm">
+                    Max Retries
+                  </Label>
+                  <Input
+                    id="max-retries"
+                    type="number"
+                    min={0}
+                    placeholder="3"
+                    value={settings.maxRetries ?? ""}
+                    onChange={(e) =>
+                      update({
+                        maxRetries: e.target.value
+                          ? Number(e.target.value)
+                          : null,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Fix attempts per page
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="dpi" className="text-sm">
+                    DPI
+                  </Label>
+                  <Input
+                    id="dpi"
+                    type="number"
+                    min={72}
+                    placeholder="300"
+                    value={settings.dpi ?? ""}
+                    onChange={(e) =>
+                      update({
+                        dpi: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    PDF rasterization resolution
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="temperature" className="text-sm">
+                    Temperature
+                  </Label>
+                  <Input
+                    id="temperature"
+                    type="number"
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    placeholder="0.1"
+                    value={settings.temperature ?? ""}
+                    onChange={(e) =>
+                      update({
+                        temperature: e.target.value
+                          ? Number(e.target.value)
+                          : null,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    LLM sampling temperature
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="max-tokens" className="text-sm">
+                    Max Tokens
+                  </Label>
+                  <Input
+                    id="max-tokens"
+                    type="number"
+                    min={1}
+                    placeholder="16384"
+                    value={settings.maxTokens ?? ""}
+                    onChange={(e) =>
+                      update({
+                        maxTokens: e.target.value
+                          ? Number(e.target.value)
+                          : null,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Max tokens per LLM call
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Leave blank to use server defaults. These can also be set via
+                environment variables with the <code>NOTES2LATEX_</code> prefix.
+              </p>
+            </div>
+          </details>
 
           <Separator />
 

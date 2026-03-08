@@ -125,6 +125,10 @@ export function HomePage() {
         model: model || undefined,
         api_key: settings.apiKey || undefined,
         preamble: settings.preamble || undefined,
+        max_retries: settings.maxRetries ?? undefined,
+        dpi: settings.dpi ?? undefined,
+        temperature: settings.temperature ?? undefined,
+        max_tokens: settings.maxTokens ?? undefined,
       });
       navigate(`/jobs/${res.job_id}`);
     } catch (err) {
