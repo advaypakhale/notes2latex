@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
-from agent.config import AgentConfig, DEFAULT_PREAMBLE
+from agent.config import AgentConfig, DEFAULT_PREAMBLE, DEFAULT_TRANSCRIBE_PROMPT
 from agent.graph import run_pipeline
 from agent.progress import EventType, ProgressEvent
 from agent.utils.page_markers import PAGE_MARKER_RE
@@ -116,6 +116,7 @@ async def create_job(
         max_retries=req.max_retries,
         dpi=req.dpi,
         preamble=req.preamble,
+        transcribe_template=req.transcribe_prompt,
         output_dir=output_dir,
     )
 
@@ -321,6 +322,12 @@ async def download_file(
 async def get_default_preamble() -> str:
     """Return the default LaTeX preamble."""
     return DEFAULT_PREAMBLE
+
+
+@preamble_router.get("/transcribe-prompt/default", response_class=PlainTextResponse)
+async def get_default_transcribe_prompt() -> str:
+    """Return the default transcription prompt."""
+    return DEFAULT_TRANSCRIBE_PROMPT
 
 
 # ---------------------------------------------------------------------------

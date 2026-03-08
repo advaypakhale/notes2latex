@@ -125,6 +125,7 @@ export function HomePage() {
         model: model || undefined,
         api_key: settings.apiKey || undefined,
         preamble: settings.preamble || undefined,
+        transcribe_prompt: settings.transcribePrompt || undefined,
       });
       navigate(`/jobs/${res.job_id}`);
     } catch (err) {

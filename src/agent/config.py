@@ -32,6 +32,7 @@ _SERIALIZABLE_FIELDS = frozenset(
 
 
 DEFAULT_PREAMBLE = (_PROMPTS_DIR / "preamble.tex").read_text(encoding="utf-8")
+DEFAULT_TRANSCRIBE_PROMPT = (_PROMPTS_DIR / "transcribe.md").read_text(encoding="utf-8")
 
 
 def _load_prompt(name: str) -> str:

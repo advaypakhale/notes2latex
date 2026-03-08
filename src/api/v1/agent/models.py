@@ -13,6 +13,7 @@ class ConvertRequest(BaseModel):
     max_retries: int = 3
     dpi: int = 300
     preamble: str | None = None
+    transcribe_prompt: str | None = None
 
 
 class PageInfo(BaseModel):

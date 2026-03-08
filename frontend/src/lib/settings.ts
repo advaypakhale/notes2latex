@@ -6,6 +6,7 @@ export interface AppSettings {
   useCustomModel: boolean;
   apiKey: string;
   preamble: string;
+  transcribePrompt: string;
 }
 
 const DEFAULTS: AppSettings = {
@@ -14,6 +15,7 @@ const DEFAULTS: AppSettings = {
   useCustomModel: false,
   apiKey: "",
   preamble: "",
+  transcribePrompt: "",
 };
 
 export function loadSettings(): AppSettings {
