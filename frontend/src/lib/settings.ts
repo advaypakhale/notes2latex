@@ -5,15 +5,17 @@ export interface AppSettings {
   customModel: string;
   useCustomModel: boolean;
   apiKey: string;
+  apiBase: string;
   preamble: string;
   transcribePrompt: string;
 }
 
 const DEFAULTS: AppSettings = {
-  model: "openrouter/google/gemini-3-flash-preview",
+  model: "ollama/llava",
   customModel: "",
   useCustomModel: false,
   apiKey: "",
+  apiBase: "http://localhost:11434",
   preamble: "",
   transcribePrompt: "",
 };

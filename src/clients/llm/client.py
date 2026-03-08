@@ -14,6 +14,7 @@ async def acompletion(
     temperature: float,
     max_tokens: int,
     api_key: str | None = None,
+    api_base: str | None = None,
 ) -> str:
     """Run an async litellm completion and return the text content."""
     kwargs: dict = {
@@ -24,6 +25,8 @@ async def acompletion(
     }
     if api_key is not None:
         kwargs["api_key"] = api_key
+    if api_base is not None:
+        kwargs["api_base"] = api_base
 
     response = await litellm.acompletion(**kwargs)
     return response.choices[0].message.content

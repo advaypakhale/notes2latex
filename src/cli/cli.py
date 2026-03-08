@@ -31,6 +31,10 @@ def convert(
         Optional[str],
         typer.Option("--model", "-m", help="LLM model name (e.g. openai/gpt-4o)"),
     ] = None,
+    api_base: Annotated[
+        Optional[str],
+        typer.Option("--api-base", help="Custom provider base URL (e.g. Ollama endpoint)"),
+    ] = None,
     output_dir: Annotated[
         Optional[Path],
         typer.Option("--output", "-o", help="Output directory"),
@@ -49,6 +53,7 @@ def convert(
         k: v
         for k, v in {
             "model": model,
+            "api_base": api_base,
             "output_dir": output_dir,
             "max_retries": max_retries,
             "dpi": dpi,

@@ -26,6 +26,7 @@ export async function createJob(
   config: {
     model?: string;
     api_key?: string;
+    api_base?: string;
     max_retries?: number;
     dpi?: number;
     preamble?: string;

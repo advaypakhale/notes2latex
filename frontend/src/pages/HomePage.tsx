@@ -124,6 +124,7 @@ export function HomePage() {
       const res = await createJob(files, {
         model: model || undefined,
         api_key: settings.apiKey || undefined,
+        api_base: settings.apiBase || undefined,
         preamble: settings.preamble || undefined,
         transcribe_prompt: settings.transcribePrompt || undefined,
       });

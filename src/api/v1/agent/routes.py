@@ -113,6 +113,7 @@ async def create_job(
         settings,
         model=req.model,
         api_key=req.api_key,
+        api_base=req.api_base,
         max_retries=req.max_retries,
         dpi=req.dpi,
         preamble=req.preamble,

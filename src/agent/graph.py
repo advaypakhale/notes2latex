@@ -80,6 +80,7 @@ async def transcribe_page(
         temperature=config.temperature,
         max_tokens=config.max_tokens,
         api_key=config.api_key,
+        api_base=config.api_base,
     )
     return strip_code_fences(text)
 
@@ -121,6 +122,7 @@ async def fix_latex(
         temperature=0.0,
         max_tokens=config.max_tokens,
         api_key=config.api_key,
+        api_base=config.api_base,
     )
     return strip_code_fences(text)
 

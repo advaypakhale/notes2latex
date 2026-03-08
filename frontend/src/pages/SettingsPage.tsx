@@ -30,6 +30,14 @@ import {
 
 const MODELS = [
   {
+    group: "Ollama",
+    items: [
+      { value: "ollama/llava", label: "LLaVA" },
+      { value: "ollama/gemma3", label: "Gemma 3" },
+      { value: "ollama/qwen2.5vl", label: "Qwen 2.5 VL" },
+    ],
+  },
+  {
     group: "Google",
     items: [
       {
@@ -185,6 +193,19 @@ export function SettingsPage() {
             <p className="text-xs text-muted-foreground">
               Your key is stored only in this browser and sent directly to the
               provider. Leave blank to use server defaults.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>API Base URL</Label>
+            <Input
+              placeholder="http://localhost:11434"
+              value={settings.apiBase}
+              onChange={(e) => update({ apiBase: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Base endpoint for providers like Ollama. Leave blank to use
+              server defaults.
             </p>
           </div>
 

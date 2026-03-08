@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     )
 
     # LLM settings
-    model: str = "openrouter/google/gemini-3-flash-preview"
+    model: str = "ollama/llava"
+    api_base: str | None = "http://localhost:11434"
     temperature: float = 0.1
     max_tokens: int = 16384
 
