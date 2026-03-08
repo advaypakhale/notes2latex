@@ -8,6 +8,8 @@ import {
   Clock,
   AlertCircle,
   CheckCircle2,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +85,7 @@ export function HomePage() {
   const [error, setError] = useState("");
   const [jobs, setJobs] = useState<JobResponse[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
+  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     listJobs()
@@ -112,6 +115,27 @@ export function HomePage() {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const toggleModelSettings = useCallback((jobId: string) => {
+    setExpandedJobs((prev) => {
+      const next = new Set(prev);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
+    });
+  }, []);
+
+  const formatSettingValue = (value: unknown): string => {
+    if (value === null || value === undefined) return "(default)";
+    if (typeof value === "string") return value.trim() ? value : "(default)";
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+    return JSON.stringify(value);
+  };
+
   const handleSubmit = async () => {
     if (files.length === 0) return;
     setError("");
@@ -124,7 +148,9 @@ export function HomePage() {
       const res = await createJob(files, {
         model: model || undefined,
         api_key: settings.apiKey || undefined,
+        api_base: settings.apiBase || undefined,
         preamble: settings.preamble || undefined,
+        transcribe_prompt: settings.transcribePrompt || undefined,
       });
       navigate(`/jobs/${res.job_id}`);
     } catch (err) {
@@ -222,14 +248,13 @@ export function HomePage() {
           ) : (
             <div className="space-y-2">
               {jobs.map((job) => (
-                <Link
+                <Card
                   key={job.job_id}
-                  to={`/jobs/${job.job_id}`}
-                  className="block"
+                  className="hover:bg-muted/50 transition-colors"
                 >
-                  <Card className="hover:bg-muted/50 transition-colors">
-                    <CardContent className="flex items-center gap-4 py-3 px-4">
-                      <div className="flex-1 min-w-0">
+                  <CardContent className="py-3 px-4 space-y-3">
+                    <div className="flex items-center gap-4">
+                      <Link to={`/jobs/${job.job_id}`} className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">
                           {job.input_filenames.join(", ")}
                         </p>
@@ -247,11 +272,48 @@ export function HomePage() {
                             </>
                           )}
                         </div>
-                      </div>
+                      </Link>
                       <StatusBadge status={job.status} />
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </div>
+
+                    <div className="rounded-md border bg-background/60 px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleModelSettings(job.job_id)}
+                        className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground"
+                        aria-expanded={expandedJobs.has(job.job_id)}
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          {expandedJobs.has(job.job_id) ? (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          )}
+                          {expandedJobs.has(job.job_id)
+                            ? "Hide model settings"
+                            : "Show model settings"}
+                        </span>
+                      </button>
+
+                      {expandedJobs.has(job.job_id) && (
+                        <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                          {Object.entries(
+                            Object.keys(job.model_settings || {}).length > 0
+                              ? job.model_settings
+                              : { model: job.model },
+                          ).map(([key, value]) => (
+                            <div key={`${job.job_id}-${key}`} className="flex gap-2">
+                              <dt className="text-muted-foreground shrink-0">{key}:</dt>
+                              <dd className="font-mono break-all">
+                                {formatSettingValue(value)}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}

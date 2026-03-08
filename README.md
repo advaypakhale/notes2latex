@@ -103,7 +103,8 @@ These can be set as environment variables (prefix `NOTES2LATEX_`) or in a `.env`
 
 | Variable | Default | Description |
 |---|---|---|
-| `NOTES2LATEX_MODEL` | `openrouter/google/gemini-3-flash-preview` | VLM to use ([supported providers](https://docs.litellm.ai/docs/providers)) |
+| `NOTES2LATEX_MODEL` | `ollama/llava` | VLM to use ([supported providers](https://docs.litellm.ai/docs/providers)) |
+| `NOTES2LATEX_API_BASE` | `http://localhost:11434` | Base URL for model providers (useful for self-hosted Ollama endpoints) |
 | `NOTES2LATEX_TEMPERATURE` | `0.1` | Sampling temperature |
 | `NOTES2LATEX_MAX_TOKENS` | `16384` | Max tokens per VLM call |
 | `NOTES2LATEX_MAX_RETRIES` | `3` | Compilation fix attempts per page |

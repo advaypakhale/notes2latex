@@ -32,3 +32,6 @@ frontend/node_modules/
 frontend/dist/
 .claude/worktrees/
 docker-compose.override.yml
+
+# vscode settings
+.vscode/

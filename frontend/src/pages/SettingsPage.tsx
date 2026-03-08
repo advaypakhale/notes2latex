@@ -23,9 +23,20 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/settings";
-import { fetchDefaultPreamble } from "@/lib/api";
+import {
+  fetchDefaultPreamble,
+  fetchDefaultTranscribePrompt,
+} from "@/lib/api";
 
 const MODELS = [
+  {
+    group: "Ollama",
+    items: [
+      { value: "ollama/llava", label: "LLaVA" },
+      { value: "ollama/gemma3", label: "Gemma 3" },
+      { value: "ollama/qwen2.5vl", label: "Qwen 2.5 VL" },
+    ],
+  },
   {
     group: "Google",
     items: [
@@ -63,6 +74,7 @@ export function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [saved, setSaved] = useState(false);
   const [defaultPreamble, setDefaultPreamble] = useState("");
+  const [defaultTranscribePrompt, setDefaultTranscribePrompt] = useState("");
 
   useEffect(() => {
     fetchDefaultPreamble()
@@ -72,6 +84,19 @@ export function SettingsPage() {
         setSettings((prev) => {
           if (!prev.preamble) {
             return { ...prev, preamble };
+          }
+          return prev;
+        });
+      })
+      .catch(() => {});
+
+    fetchDefaultTranscribePrompt()
+      .then((prompt) => {
+        setDefaultTranscribePrompt(prompt);
+        // If no custom transcribe prompt is set yet, populate with the default
+        setSettings((prev) => {
+          if (!prev.transcribePrompt) {
+            return { ...prev, transcribePrompt: prompt };
           }
           return prev;
         });
@@ -171,6 +196,19 @@ export function SettingsPage() {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label>API Base URL</Label>
+            <Input
+              placeholder="http://localhost:11434"
+              value={settings.apiBase}
+              onChange={(e) => update({ apiBase: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Base endpoint for providers like Ollama. Leave blank to use
+              server defaults.
+            </p>
+          </div>
+
           <Separator />
 
           {/* Preamble editor */}
@@ -201,6 +239,40 @@ export function SettingsPage() {
               Customize the LaTeX preamble used for all conversions. Add your
               own <code>\newcommand</code> definitions, packages, and theorem
               styles.
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Transcribe Prompt editor */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Transcription Prompt</Label>
+              {defaultTranscribePrompt &&
+                settings.transcribePrompt !== defaultTranscribePrompt && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      update({ transcribePrompt: defaultTranscribePrompt });
+                    }}
+                  >
+                    <RotateCcw className="mr-1 h-3 w-3" />
+                    Reset to Default
+                  </Button>
+                )}
+            </div>
+            <Textarea
+              className="font-mono text-xs leading-relaxed min-h-[320px] resize-y"
+              value={settings.transcribePrompt}
+              onChange={(e) => update({ transcribePrompt: e.target.value })}
+              spellCheck={false}
+            />
+            <p className="text-xs text-muted-foreground">
+              Customize the system prompt used for transcribing handwritten
+              notes to LaTeX. This controls how the model interprets and
+              formats your handwriting.
             </p>
           </div>
 

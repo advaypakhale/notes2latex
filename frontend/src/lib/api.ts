@@ -9,6 +9,12 @@ export async function fetchDefaultPreamble(): Promise<string> {
   return res.text();
 }
 
+export async function fetchDefaultTranscribePrompt(): Promise<string> {
+  const res = await fetch(`${API_BASE}/preamble/transcribe-prompt/default`);
+  if (!res.ok) throw new Error("Failed to fetch default transcribe prompt");
+  return res.text();
+}
+
 export async function listJobs(): Promise<JobResponse[]> {
   const res = await fetch(`${API_BASE}/jobs`);
   if (!res.ok) throw new Error("Failed to fetch jobs");
@@ -20,9 +26,11 @@ export async function createJob(
   config: {
     model?: string;
     api_key?: string;
+    api_base?: string;
     max_retries?: number;
     dpi?: number;
     preamble?: string;
+    transcribe_prompt?: string;
   },
 ): Promise<JobResponse> {
   const form = new FormData();

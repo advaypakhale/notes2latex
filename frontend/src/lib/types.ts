@@ -37,6 +37,7 @@ export interface JobResponse {
   job_id: string;
   status: JobStatus;
   model: string;
+  model_settings: Record<string, unknown>;
   total_pages: number;
   created_at: string | null;
   completed_at: string | null;

@@ -15,11 +15,18 @@ class JobRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def create(self, job_id: str, model: str, filenames: list[str]) -> Job:
+    async def create(
+        self,
+        job_id: str,
+        model: str,
+        model_settings: dict[str, object],
+        filenames: list[str],
+    ) -> Job:
         job = Job(
             id=job_id,
             status=JobStatus.PENDING,
             model=model,
+            model_settings=json.dumps(model_settings),
             input_filenames=json.dumps(filenames),
         )
         self._session.add(job)

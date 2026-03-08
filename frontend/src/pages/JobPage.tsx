@@ -12,6 +12,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Filter,
   FilterX,
 } from "lucide-react";
@@ -426,6 +427,16 @@ function LatexSourceView({
 function ResultView({ job }: { job: JobResponse }) {
   const [texSource, setTexSource] = useState<string | null>(null);
   const [texLoading, setTexLoading] = useState(false);
+  const [showModelSettings, setShowModelSettings] = useState(false);
+
+  const formatSettingValue = (value: unknown): string => {
+    if (value === null || value === undefined) return "(default)";
+    if (typeof value === "string") return value.trim() ? value : "(default)";
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+    return JSON.stringify(value);
+  };
 
   const loadTex = useCallback(() => {
     if (texSource !== null || texLoading || !job.has_tex) return;
@@ -438,6 +449,41 @@ function ResultView({ job }: { job: JobResponse }) {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardContent className="py-3 px-4">
+          <button
+            type="button"
+            onClick={() => setShowModelSettings((prev) => !prev)}
+            className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground"
+            aria-expanded={showModelSettings}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              {showModelSettings ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              {showModelSettings ? "Hide model settings" : "Show model settings"}
+            </span>
+          </button>
+
+          {showModelSettings && (
+            <dl className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              {Object.entries(
+                Object.keys(job.model_settings || {}).length > 0
+                  ? job.model_settings
+                  : { model: job.model },
+              ).map(([key, value]) => (
+                <div key={`${job.job_id}-${key}`} className="flex gap-2">
+                  <dt className="text-muted-foreground shrink-0">{key}:</dt>
+                  <dd className="font-mono break-all">{formatSettingValue(value)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </CardContent>
+      </Card>
+
       {/* PDF preview */}
       {job.has_pdf && (
         <Card>

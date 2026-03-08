@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
-from agent.config import AgentConfig, DEFAULT_PREAMBLE
+from agent.config import AgentConfig, DEFAULT_PREAMBLE, DEFAULT_TRANSCRIBE_PROMPT
 from agent.graph import run_pipeline
 from agent.progress import EventType, ProgressEvent
 from agent.utils.page_markers import PAGE_MARKER_RE
@@ -72,6 +72,18 @@ def _get_job_dir(job_id: str) -> Path:
     return JOBS_DIR / job_id
 
 
+def _serialize_model_settings(config: AgentConfig) -> dict[str, object]:
+    """Return persisted model-related settings for a job."""
+    return {
+        "model": config.model,
+        "api_base": config.api_base,
+        "temperature": config.temperature,
+        "max_tokens": config.max_tokens,
+        "max_retries": config.max_retries,
+        "dpi": config.dpi,
+    }
+
+
 @router.post("", response_model=JobResponse)
 async def create_job(
     files: list[UploadFile],
@@ -104,19 +116,27 @@ async def create_job(
         shutil.rmtree(job_dir, ignore_errors=True)
         raise HTTPException(status_code=400, detail="No files uploaded")
 
-    repo = JobRepository(session)
-    job = await repo.create(job_id=job_id, model=req.model, filenames=filenames)
-
     # Build resolved config for this job
     settings = get_settings()
     agent_config = AgentConfig.from_settings(
         settings,
         model=req.model,
         api_key=req.api_key,
+        api_base=req.api_base,
         max_retries=req.max_retries,
         dpi=req.dpi,
         preamble=req.preamble,
+        transcribe_template=req.transcribe_prompt,
         output_dir=output_dir,
+    )
+
+    repo = JobRepository(session)
+    model_settings = _serialize_model_settings(agent_config)
+    job = await repo.create(
+        job_id=job_id,
+        model=agent_config.model,
+        model_settings=model_settings,
+        filenames=filenames,
     )
 
     # Create event store
@@ -130,6 +150,7 @@ async def create_job(
         job_id=job.id,
         status=job.status,
         model=job.model,
+        model_settings=model_settings,
         created_at=job.created_at,
         input_filenames=filenames,
     )
@@ -182,10 +203,16 @@ async def _handle_db_event(job_id: str, event: ProgressEvent, output_dir: Path) 
 
 def _build_job_response(job) -> JobResponse:
     """Convert a DB Job row into an API response."""
+    try:
+        model_settings = json.loads(job.model_settings or "{}")
+    except json.JSONDecodeError:
+        model_settings = {}
+
     return JobResponse(
         job_id=job.id,
         status=job.status,
         model=job.model,
+        model_settings=model_settings,
         total_pages=job.total_pages,
         created_at=job.created_at,
         completed_at=job.completed_at,
@@ -321,6 +348,12 @@ async def download_file(
 async def get_default_preamble() -> str:
     """Return the default LaTeX preamble."""
     return DEFAULT_PREAMBLE
+
+
+@preamble_router.get("/transcribe-prompt/default", response_class=PlainTextResponse)
+async def get_default_transcribe_prompt() -> str:
+    """Return the default transcription prompt."""
+    return DEFAULT_TRANSCRIBE_PROMPT
 
 
 # ---------------------------------------------------------------------------

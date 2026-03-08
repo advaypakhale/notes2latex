@@ -17,6 +17,7 @@ _jinja_env = Environment(loader=BaseLoader())
 _SERIALIZABLE_FIELDS = frozenset(
     {
         "model",
+        "api_base",
         "temperature",
         "max_tokens",
         "max_retries",
@@ -32,6 +33,7 @@ _SERIALIZABLE_FIELDS = frozenset(
 
 
 DEFAULT_PREAMBLE = (_PROMPTS_DIR / "preamble.tex").read_text(encoding="utf-8")
+DEFAULT_TRANSCRIBE_PROMPT = (_PROMPTS_DIR / "transcribe.md").read_text(encoding="utf-8")
 
 
 def _load_prompt(name: str) -> str:
@@ -44,7 +46,8 @@ class AgentConfig:
     """Configuration for a single pipeline run."""
 
     # LLM settings
-    model: str = "openrouter/google/gemini-3-flash-preview"
+    model: str = "ollama/llava"
+    api_base: str | None = "http://localhost:11434"
     temperature: float = 0.1
     max_tokens: int = 16384
 
@@ -87,6 +90,7 @@ class AgentConfig:
         """Build AgentConfig from app Settings with optional per-request overrides."""
         base = {
             "model": settings.model,
+            "api_base": settings.api_base,
             "temperature": settings.temperature,
             "max_tokens": settings.max_tokens,
             "max_retries": settings.max_retries,

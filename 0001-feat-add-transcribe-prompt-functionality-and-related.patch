@@ -1,0 +1,234 @@
+From 42bd3bb27ecaec3b3087ce4f2bcaec2907ac81bf Mon Sep 17 00:00:00 2001
+From: Your Name <your.email@example.com>
+Date: Sat, 7 Mar 2026 22:12:26 -0600
+Subject: [PATCH 1/3] feat: add transcribe prompt functionality and related
+ settings
+
+---
+ .vscode/settings.json               |  6 ++++
+ frontend/src/lib/api.ts             |  7 ++++
+ frontend/src/lib/settings.ts        |  2 ++
+ frontend/src/pages/HomePage.tsx     |  1 +
+ frontend/src/pages/SettingsPage.tsx | 53 ++++++++++++++++++++++++++++-
+ src/agent/config.py                 |  1 +
+ src/api/v1/agent/models.py          |  1 +
+ src/api/v1/agent/routes.py          |  9 ++++-
+ 8 files changed, 78 insertions(+), 2 deletions(-)
+ create mode 100644 .vscode/settings.json
+
+diff --git a/.vscode/settings.json b/.vscode/settings.json
+new file mode 100644
+index 0000000..d9d37f2
+--- /dev/null
++++ b/.vscode/settings.json
+@@ -0,0 +1,6 @@
++{
++    "workbench.colorCustomizations": {
++        "minimap.background": "#00000000",
++        "scrollbar.shadow": "#00000000"
++    }
++}
+\ No newline at end of file
+diff --git a/frontend/src/lib/api.ts b/frontend/src/lib/api.ts
+index fc785df..259b4f1 100644
+--- a/frontend/src/lib/api.ts
++++ b/frontend/src/lib/api.ts
+@@ -9,6 +9,12 @@ export async function fetchDefaultPreamble(): Promise<string> {
+   return res.text();
+ }
+ 
++export async function fetchDefaultTranscribePrompt(): Promise<string> {
++  const res = await fetch(`${API_BASE}/preamble/transcribe-prompt/default`);
++  if (!res.ok) throw new Error("Failed to fetch default transcribe prompt");
++  return res.text();
++}
++
+ export async function listJobs(): Promise<JobResponse[]> {
+   const res = await fetch(`${API_BASE}/jobs`);
+   if (!res.ok) throw new Error("Failed to fetch jobs");
+@@ -23,6 +29,7 @@ export async function createJob(
+     max_retries?: number;
+     dpi?: number;
+     preamble?: string;
++    transcribe_prompt?: string;
+   },
+ ): Promise<JobResponse> {
+   const form = new FormData();
+diff --git a/frontend/src/lib/settings.ts b/frontend/src/lib/settings.ts
+index 7fde721..833a903 100644
+--- a/frontend/src/lib/settings.ts
++++ b/frontend/src/lib/settings.ts
+@@ -6,6 +6,7 @@ export interface AppSettings {
+   useCustomModel: boolean;
+   apiKey: string;
+   preamble: string;
++  transcribePrompt: string;
+ }
+ 
+ const DEFAULTS: AppSettings = {
+@@ -14,6 +15,7 @@ const DEFAULTS: AppSettings = {
+   useCustomModel: false,
+   apiKey: "",
+   preamble: "",
++  transcribePrompt: "",
+ };
+ 
+ export function loadSettings(): AppSettings {
+diff --git a/frontend/src/pages/HomePage.tsx b/frontend/src/pages/HomePage.tsx
+index b6ee1d7..951f237 100644
+--- a/frontend/src/pages/HomePage.tsx
++++ b/frontend/src/pages/HomePage.tsx
+@@ -125,6 +125,7 @@ export function HomePage() {
+         model: model || undefined,
+         api_key: settings.apiKey || undefined,
+         preamble: settings.preamble || undefined,
++        transcribe_prompt: settings.transcribePrompt || undefined,
+       });
+       navigate(`/jobs/${res.job_id}`);
+     } catch (err) {
+diff --git a/frontend/src/pages/SettingsPage.tsx b/frontend/src/pages/SettingsPage.tsx
+index 587b9a0..5aeb99c 100644
+--- a/frontend/src/pages/SettingsPage.tsx
++++ b/frontend/src/pages/SettingsPage.tsx
+@@ -23,7 +23,10 @@ import {
+ import { Separator } from "@/components/ui/separator";
+ import { Textarea } from "@/components/ui/textarea";
+ import { loadSettings, saveSettings, type AppSettings } from "@/lib/settings";
+-import { fetchDefaultPreamble } from "@/lib/api";
++import {
++  fetchDefaultPreamble,
++  fetchDefaultTranscribePrompt,
++} from "@/lib/api";
+ 
+ const MODELS = [
+   {
+@@ -63,6 +66,7 @@ export function SettingsPage() {
+   const [settings, setSettings] = useState<AppSettings>(loadSettings);
+   const [saved, setSaved] = useState(false);
+   const [defaultPreamble, setDefaultPreamble] = useState("");
++  const [defaultTranscribePrompt, setDefaultTranscribePrompt] = useState("");
+ 
+   useEffect(() => {
+     fetchDefaultPreamble()
+@@ -77,6 +81,19 @@ export function SettingsPage() {
+         });
+       })
+       .catch(() => {});
++
++    fetchDefaultTranscribePrompt()
++      .then((prompt) => {
++        setDefaultTranscribePrompt(prompt);
++        // If no custom transcribe prompt is set yet, populate with the default
++        setSettings((prev) => {
++          if (!prev.transcribePrompt) {
++            return { ...prev, transcribePrompt: prompt };
++          }
++          return prev;
++        });
++      })
++      .catch(() => {});
+   }, []);
+ 
+   const update = (patch: Partial<AppSettings>) => {
+@@ -206,6 +223,40 @@ export function SettingsPage() {
+ 
+           <Separator />
+ 
++          {/* Transcribe Prompt editor */}
++          <div className="space-y-2">
++            <div className="flex items-center justify-between">
++              <Label>Transcription Prompt</Label>
++              {defaultTranscribePrompt &&
++                settings.transcribePrompt !== defaultTranscribePrompt && (
++                  <Button
++                    variant="ghost"
++                    size="sm"
++                    className="h-7 text-xs"
++                    onClick={() => {
++                      update({ transcribePrompt: defaultTranscribePrompt });
++                    }}
++                  >
++                    <RotateCcw className="mr-1 h-3 w-3" />
++                    Reset to Default
++                  </Button>
++                )}
++            </div>
++            <Textarea
++              className="font-mono text-xs leading-relaxed min-h-[320px] resize-y"
++              value={settings.transcribePrompt}
++              onChange={(e) => update({ transcribePrompt: e.target.value })}
++              spellCheck={false}
++            />
++            <p className="text-xs text-muted-foreground">
++              Customize the system prompt used for transcribing handwritten
++              notes to LaTeX. This controls how the model interprets and
++              formats your handwriting.
++            </p>
++          </div>
++
++          <Separator />
++
+           {/* Docs link */}
+           <div className="text-sm text-muted-foreground">
+             <a
+diff --git a/src/agent/config.py b/src/agent/config.py
+index 21dd048..b5014d8 100644
+--- a/src/agent/config.py
++++ b/src/agent/config.py
+@@ -32,6 +32,7 @@ _SERIALIZABLE_FIELDS = frozenset(
+ 
+ 
+ DEFAULT_PREAMBLE = (_PROMPTS_DIR / "preamble.tex").read_text(encoding="utf-8")
++DEFAULT_TRANSCRIBE_PROMPT = (_PROMPTS_DIR / "transcribe.md").read_text(encoding="utf-8")
+ 
+ 
+ def _load_prompt(name: str) -> str:
+diff --git a/src/api/v1/agent/models.py b/src/api/v1/agent/models.py
+index 28e0c1e..21f4963 100644
+--- a/src/api/v1/agent/models.py
++++ b/src/api/v1/agent/models.py
+@@ -13,6 +13,7 @@ class ConvertRequest(BaseModel):
+     max_retries: int = 3
+     dpi: int = 300
+     preamble: str | None = None
++    transcribe_prompt: str | None = None
+ 
+ 
+ class PageInfo(BaseModel):
+diff --git a/src/api/v1/agent/routes.py b/src/api/v1/agent/routes.py
+index 082046d..c4c0d08 100644
+--- a/src/api/v1/agent/routes.py
++++ b/src/api/v1/agent/routes.py
+@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
+ from sqlmodel.ext.asyncio.session import AsyncSession
+ from sse_starlette.sse import EventSourceResponse
+ 
+-from agent.config import AgentConfig, DEFAULT_PREAMBLE
++from agent.config import AgentConfig, DEFAULT_PREAMBLE, DEFAULT_TRANSCRIBE_PROMPT
+ from agent.graph import run_pipeline
+ from agent.progress import EventType, ProgressEvent
+ from agent.utils.page_markers import PAGE_MARKER_RE
+@@ -116,6 +116,7 @@ async def create_job(
+         max_retries=req.max_retries,
+         dpi=req.dpi,
+         preamble=req.preamble,
++        transcribe_template=req.transcribe_prompt,
+         output_dir=output_dir,
+     )
+ 
+@@ -323,6 +324,12 @@ async def get_default_preamble() -> str:
+     return DEFAULT_PREAMBLE
+ 
+ 
++@preamble_router.get("/transcribe-prompt/default", response_class=PlainTextResponse)
++async def get_default_transcribe_prompt() -> str:
++    """Return the default transcription prompt."""
++    return DEFAULT_TRANSCRIBE_PROMPT
++
++
+ # ---------------------------------------------------------------------------
+ # Page-level endpoints (for side-by-side review)
+ # ---------------------------------------------------------------------------
+-- 
+2.53.0
+

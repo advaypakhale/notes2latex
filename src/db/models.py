@@ -17,6 +17,7 @@ class Job(SQLModel, table=True):
     id: str = Field(primary_key=True)
     status: JobStatus = Field(default=JobStatus.PENDING)
     model: str = Field(default="")
+    model_settings: str = Field(default="{}")  # JSON object
     total_pages: int = Field(default=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: datetime | None = Field(default=None)

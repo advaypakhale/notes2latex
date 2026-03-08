@@ -1,0 +1,259 @@
+From fb0ce4ecc6ac46ad18b0da2efcca8ecc1b3c5eab Mon Sep 17 00:00:00 2001
+From: Your Name <your.email@example.com>
+Date: Sun, 8 Mar 2026 09:03:27 -0500
+Subject: [PATCH 3/3] feat: update model and API base settings for Ollama
+ integration
+
+---
+ README.md                           |  3 ++-
+ frontend/src/lib/api.ts             |  1 +
+ frontend/src/lib/settings.ts        |  4 +++-
+ frontend/src/pages/HomePage.tsx     |  1 +
+ frontend/src/pages/SettingsPage.tsx | 21 +++++++++++++++++++++
+ src/agent/config.py                 |  5 ++++-
+ src/agent/graph.py                  |  2 ++
+ src/api/v1/agent/models.py          |  3 ++-
+ src/api/v1/agent/routes.py          |  1 +
+ src/cli/cli.py                      |  5 +++++
+ src/clients/llm/client.py           |  3 +++
+ src/core/config.py                  |  3 ++-
+ 12 files changed, 47 insertions(+), 5 deletions(-)
+
+diff --git a/README.md b/README.md
+index 0330881..47410d8 100644
+--- a/README.md
++++ b/README.md
+@@ -103,7 +103,8 @@ These can be set as environment variables (prefix `NOTES2LATEX_`) or in a `.env`
+ 
+ | Variable | Default | Description |
+ |---|---|---|
+-| `NOTES2LATEX_MODEL` | `openrouter/google/gemini-3-flash-preview` | VLM to use ([supported providers](https://docs.litellm.ai/docs/providers)) |
++| `NOTES2LATEX_MODEL` | `ollama/llava` | VLM to use ([supported providers](https://docs.litellm.ai/docs/providers)) |
++| `NOTES2LATEX_API_BASE` | `http://localhost:11434` | Base URL for model providers (useful for self-hosted Ollama endpoints) |
+ | `NOTES2LATEX_TEMPERATURE` | `0.1` | Sampling temperature |
+ | `NOTES2LATEX_MAX_TOKENS` | `16384` | Max tokens per VLM call |
+ | `NOTES2LATEX_MAX_RETRIES` | `3` | Compilation fix attempts per page |
+diff --git a/frontend/src/lib/api.ts b/frontend/src/lib/api.ts
+index 259b4f1..64f0453 100644
+--- a/frontend/src/lib/api.ts
++++ b/frontend/src/lib/api.ts
+@@ -26,6 +26,7 @@ export async function createJob(
+   config: {
+     model?: string;
+     api_key?: string;
++    api_base?: string;
+     max_retries?: number;
+     dpi?: number;
+     preamble?: string;
+diff --git a/frontend/src/lib/settings.ts b/frontend/src/lib/settings.ts
+index 833a903..42592b4 100644
+--- a/frontend/src/lib/settings.ts
++++ b/frontend/src/lib/settings.ts
+@@ -5,15 +5,17 @@ export interface AppSettings {
+   customModel: string;
+   useCustomModel: boolean;
+   apiKey: string;
++  apiBase: string;
+   preamble: string;
+   transcribePrompt: string;
+ }
+ 
+ const DEFAULTS: AppSettings = {
+-  model: "openrouter/google/gemini-3-flash-preview",
++  model: "ollama/llava",
+   customModel: "",
+   useCustomModel: false,
+   apiKey: "",
++  apiBase: "http://localhost:11434",
+   preamble: "",
+   transcribePrompt: "",
+ };
+diff --git a/frontend/src/pages/HomePage.tsx b/frontend/src/pages/HomePage.tsx
+index 951f237..c63dd25 100644
+--- a/frontend/src/pages/HomePage.tsx
++++ b/frontend/src/pages/HomePage.tsx
+@@ -124,6 +124,7 @@ export function HomePage() {
+       const res = await createJob(files, {
+         model: model || undefined,
+         api_key: settings.apiKey || undefined,
++        api_base: settings.apiBase || undefined,
+         preamble: settings.preamble || undefined,
+         transcribe_prompt: settings.transcribePrompt || undefined,
+       });
+diff --git a/frontend/src/pages/SettingsPage.tsx b/frontend/src/pages/SettingsPage.tsx
+index 5aeb99c..81635fc 100644
+--- a/frontend/src/pages/SettingsPage.tsx
++++ b/frontend/src/pages/SettingsPage.tsx
+@@ -29,6 +29,14 @@ import {
+ } from "@/lib/api";
+ 
+ const MODELS = [
++  {
++    group: "Ollama",
++    items: [
++      { value: "ollama/llava", label: "LLaVA" },
++      { value: "ollama/gemma3", label: "Gemma 3" },
++      { value: "ollama/qwen2.5vl", label: "Qwen 2.5 VL" },
++    ],
++  },
+   {
+     group: "Google",
+     items: [
+@@ -188,6 +196,19 @@ export function SettingsPage() {
+             </p>
+           </div>
+ 
++          <div className="space-y-2">
++            <Label>API Base URL</Label>
++            <Input
++              placeholder="http://localhost:11434"
++              value={settings.apiBase}
++              onChange={(e) => update({ apiBase: e.target.value })}
++            />
++            <p className="text-xs text-muted-foreground">
++              Base endpoint for providers like Ollama. Leave blank to use
++              server defaults.
++            </p>
++          </div>
++
+           <Separator />
+ 
+           {/* Preamble editor */}
+diff --git a/src/agent/config.py b/src/agent/config.py
+index b5014d8..58060a3 100644
+--- a/src/agent/config.py
++++ b/src/agent/config.py
+@@ -17,6 +17,7 @@ _jinja_env = Environment(loader=BaseLoader())
+ _SERIALIZABLE_FIELDS = frozenset(
+     {
+         "model",
++        "api_base",
+         "temperature",
+         "max_tokens",
+         "max_retries",
+@@ -45,7 +46,8 @@ class AgentConfig:
+     """Configuration for a single pipeline run."""
+ 
+     # LLM settings
+-    model: str = "openrouter/google/gemini-3-flash-preview"
++    model: str = "ollama/llava"
++    api_base: str | None = "http://localhost:11434"
+     temperature: float = 0.1
+     max_tokens: int = 16384
+ 
+@@ -88,6 +90,7 @@ class AgentConfig:
+         """Build AgentConfig from app Settings with optional per-request overrides."""
+         base = {
+             "model": settings.model,
++            "api_base": settings.api_base,
+             "temperature": settings.temperature,
+             "max_tokens": settings.max_tokens,
+             "max_retries": settings.max_retries,
+diff --git a/src/agent/graph.py b/src/agent/graph.py
+index b63c0be..03992f3 100644
+--- a/src/agent/graph.py
++++ b/src/agent/graph.py
+@@ -80,6 +80,7 @@ async def transcribe_page(
+         temperature=config.temperature,
+         max_tokens=config.max_tokens,
+         api_key=config.api_key,
++        api_base=config.api_base,
+     )
+     return strip_code_fences(text)
+ 
+@@ -121,6 +122,7 @@ async def fix_latex(
+         temperature=0.0,
+         max_tokens=config.max_tokens,
+         api_key=config.api_key,
++        api_base=config.api_base,
+     )
+     return strip_code_fences(text)
+ 
+diff --git a/src/api/v1/agent/models.py b/src/api/v1/agent/models.py
+index 21f4963..8ef4fed 100644
+--- a/src/api/v1/agent/models.py
++++ b/src/api/v1/agent/models.py
+@@ -8,8 +8,9 @@ from db.models import JobStatus
+ 
+ 
+ class ConvertRequest(BaseModel):
+-    model: str = "openrouter/google/gemini-3-flash-preview"
++    model: str = "ollama/llava"
+     api_key: str | None = None
++    api_base: str | None = None
+     max_retries: int = 3
+     dpi: int = 300
+     preamble: str | None = None
+diff --git a/src/api/v1/agent/routes.py b/src/api/v1/agent/routes.py
+index c4c0d08..44d8681 100644
+--- a/src/api/v1/agent/routes.py
++++ b/src/api/v1/agent/routes.py
+@@ -113,6 +113,7 @@ async def create_job(
+         settings,
+         model=req.model,
+         api_key=req.api_key,
++        api_base=req.api_base,
+         max_retries=req.max_retries,
+         dpi=req.dpi,
+         preamble=req.preamble,
+diff --git a/src/cli/cli.py b/src/cli/cli.py
+index fc0d789..e5ece52 100644
+--- a/src/cli/cli.py
++++ b/src/cli/cli.py
+@@ -31,6 +31,10 @@ def convert(
+         Optional[str],
+         typer.Option("--model", "-m", help="LLM model name (e.g. openai/gpt-4o)"),
+     ] = None,
++    api_base: Annotated[
++        Optional[str],
++        typer.Option("--api-base", help="Custom provider base URL (e.g. Ollama endpoint)"),
++    ] = None,
+     output_dir: Annotated[
+         Optional[Path],
+         typer.Option("--output", "-o", help="Output directory"),
+@@ -49,6 +53,7 @@ def convert(
+         k: v
+         for k, v in {
+             "model": model,
++            "api_base": api_base,
+             "output_dir": output_dir,
+             "max_retries": max_retries,
+             "dpi": dpi,
+diff --git a/src/clients/llm/client.py b/src/clients/llm/client.py
+index b565cee..1a8e3c0 100644
+--- a/src/clients/llm/client.py
++++ b/src/clients/llm/client.py
+@@ -14,6 +14,7 @@ async def acompletion(
+     temperature: float,
+     max_tokens: int,
+     api_key: str | None = None,
++    api_base: str | None = None,
+ ) -> str:
+     """Run an async litellm completion and return the text content."""
+     kwargs: dict = {
+@@ -24,6 +25,8 @@ async def acompletion(
+     }
+     if api_key is not None:
+         kwargs["api_key"] = api_key
++    if api_base is not None:
++        kwargs["api_base"] = api_base
+ 
+     response = await litellm.acompletion(**kwargs)
+     return response.choices[0].message.content
+diff --git a/src/core/config.py b/src/core/config.py
+index 1139204..9336b4f 100644
+--- a/src/core/config.py
++++ b/src/core/config.py
+@@ -15,7 +15,8 @@ class Settings(BaseSettings):
+     )
+ 
+     # LLM settings
+-    model: str = "openrouter/google/gemini-3-flash-preview"
++    model: str = "ollama/llava"
++    api_base: str | None = "http://localhost:11434"
+     temperature: float = 0.1
+     max_tokens: int = 16384
+ 
+-- 
+2.53.0
+

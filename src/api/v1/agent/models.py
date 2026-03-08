@@ -1,18 +1,21 @@
 """Pydantic request/response models for the agent API."""
 
 from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from db.models import JobStatus
 
 
 class ConvertRequest(BaseModel):
-    model: str = "openrouter/google/gemini-3-flash-preview"
+    model: str = "ollama/llava"
     api_key: str | None = None
+    api_base: str | None = None
     max_retries: int = 3
     dpi: int = 300
     preamble: str | None = None
+    transcribe_prompt: str | None = None
 
 
 class PageInfo(BaseModel):
@@ -29,6 +32,7 @@ class JobResponse(BaseModel):
     job_id: str
     status: JobStatus
     model: str = ""
+    model_settings: dict[str, Any] = Field(default_factory=dict)
     total_pages: int = 0
     created_at: datetime | None = None
     completed_at: datetime | None = None
