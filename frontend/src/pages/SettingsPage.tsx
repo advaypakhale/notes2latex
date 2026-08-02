@@ -173,6 +173,22 @@ export function SettingsPage() {
 
           <Separator />
 
+          {/* API Base URL */}
+          <div className="space-y-2">
+            <Label>API Base URL</Label>
+            <Input
+              type="text"
+              placeholder="e.g. http://localhost:11434"
+              value={settings.apiBase}
+              onChange={(e) => update({ apiBase: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Optional. Specify a custom API endpoint for local providers like Ollama.
+            </p>
+          </div>
+
+          <Separator />
+
           {/* Preamble editor */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
