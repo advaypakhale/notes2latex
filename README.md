@@ -55,6 +55,8 @@ Open [http://localhost:8000](http://localhost:8000), go to **Settings**, enter y
 
 > Don't have an API key yet? See [Configuration](#setting-your-api-key) for a fast-ish way to get one.
 
+> **Upgrading from an older image?** The container runs as uid 1000, so a `notes2latex-data` volume left over from a version that ran as root won't be writable. The app prints the `chown` command to fix it and exits.
+
 ## How It Works
 
 The core of notes2latex is an agentic **generate-compile-fix loop** built with [LangGraph](https://github.com/langchain-ai/langgraph). For each page:
@@ -75,7 +77,7 @@ The output is a complete, compilable `.tex` document with preamble and the compi
 - **Side-by-side review**: compare each original page against the generated LaTeX in a split view. Copy LaTeX per page.
 - **Customizable preamble**: the default includes `amsmath`, `amssymb`, `amsthm`, `mathtools`, `physics`, `tikz`, `pgfplots`, and common theorem environments. Add your own packages and `\newcommand` definitions in the Settings page.
 - **Any model, any provider**: works with any VLM through [LiteLLM](https://docs.litellm.ai/docs/providers) (100+ models), including free and self-hosted ones.
-- **Real-time progress**: streaming updates show which page is being processed and what step the pipeline is on.
+- **Real-time progress**: the page polls the job about once a second to show which page is being processed and what step the pipeline is on.
 - **CLI**: `notes2latex convert notes.pdf` if you prefer the command line.
 
 ```bash
@@ -108,9 +110,13 @@ These can be set as environment variables (prefix `NOTES2LATEX_`) or in a `.env`
 | `NOTES2LATEX_MAX_TOKENS` | `16384` | Max tokens per VLM call |
 | `NOTES2LATEX_MAX_RETRIES` | `3` | Compilation fix attempts per page |
 | `NOTES2LATEX_CONTEXT_LINES` | `40` | Lines of prior LaTeX passed as context |
+| `NOTES2LATEX_OUTPUT_DIR` | `./output` | Where the CLI writes the `.tex` and PDF |
 | `NOTES2LATEX_DPI` | `300` | DPI for PDF-to-image rasterization |
+| `NOTES2LATEX_MAX_PAGE_PIXELS` | `60000000` | Pixel ceiling for a single rasterized page |
 | `NOTES2LATEX_LATEX_ENGINE` | `pdflatex` | LaTeX engine |
 | `NOTES2LATEX_COMPILE_TIMEOUT` | `60` | Compilation timeout (seconds) |
+| `NOTES2LATEX_DATA_DIR` | `./data` | Where the server keeps its database and job files |
+| `NOTES2LATEX_MAX_UPLOAD_BYTES` | `104857600` | Upload size limit, 100 MB by default |
 
 ## Model Recommendations
 
