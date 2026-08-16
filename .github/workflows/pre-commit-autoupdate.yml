@@ -1,0 +1,35 @@
+name: Pre-commit Autoupdate
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  autoupdate:
+    name: autoupdate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install pre-commit
+      - run: pre-commit autoupdate
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/pre-commit-autoupdate
+          title: "chore: update pre-commit hook versions"
+          commit-message: "chore: update pre-commit hook versions"
+          body: |
+            `pre-commit autoupdate` moved one or more hook revisions.
+
+            Workflows do not run on pull requests opened with `GITHUB_TOKEN`, so
+            close and reopen this PR if you want CI to check it before merging.
+          delete-branch: true

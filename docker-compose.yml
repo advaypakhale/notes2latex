@@ -1,6 +1,9 @@
 services:
   notes2latex:
+    # Pin a released tag (e.g. :0.1.0) if you want reproducible upgrades.
     image: ghcr.io/advaypakhale/notes2latex:latest
+    build: .
+    restart: unless-stopped
     ports:
       - "8000:8000"
     env_file:
