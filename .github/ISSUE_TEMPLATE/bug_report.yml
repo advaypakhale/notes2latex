@@ -1,0 +1,53 @@
+name: Bug report
+description: Something does not work as described
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got.
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model string
+      placeholder: openrouter/google/gemini-3-flash-preview
+    validations:
+      required: true
+
+  - type: dropdown
+    id: how-run
+    attributes:
+      label: How are you running it
+      options:
+        - Docker image from ghcr.io
+        - Docker image built from source
+        - Local dev (make dev)
+        - CLI (notes2latex convert)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Image tag or commit.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: compile-log
+    attributes:
+      label: LaTeX compile log
+      description: If a page failed to compile.
+      render: text
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Server logs, browser console, a sample page image.

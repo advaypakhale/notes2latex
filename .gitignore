@@ -9,6 +9,11 @@ wheels/
 # Virtual environments
 .venv
 
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
 # Environment variables
 .env
 
@@ -21,14 +26,13 @@ data/
 # Test PDFs
 *.pdf
 
-# E2E screenshots
-e2e-*.png
-
-# Playwright MCP logs
-.playwright-mcp/
-
 # Frontend build artifacts
 frontend/node_modules/
 frontend/dist/
-.claude/worktrees/
+*.tsbuildinfo
+
+.claude/
 docker-compose.override.yml
+
+# OS junk
+.DS_Store
