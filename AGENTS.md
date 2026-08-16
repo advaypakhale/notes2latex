@@ -16,3 +16,4 @@ Use the Makefile for project-specific commands (tests, linting, formatting, etc.
 - zod schemas are the frontend's type source, parsed at every boundary
 - pydantic models are the backend's, at every boundary: no ad-hoc dicts across the API, graph state or DB-to-response
 - Prefer deleting code to adding it; a change that nets more code has to justify itself
+- Do not add test suites or broaden the existing one unless asked
