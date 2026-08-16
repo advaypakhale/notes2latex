@@ -4,7 +4,23 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Convert handwritten maths notes into compiled LaTeX."
+    />
     <title>notes2latex</title>
+    <script>
+      // Applies the stored theme before first paint; next-themes takes over on mount.
+      try {
+        var stored = localStorage.getItem("theme");
+        var dark =
+          stored === "dark" ||
+          ((!stored || stored === "system") &&
+            matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

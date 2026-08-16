@@ -22,7 +22,7 @@ dependencies = [
     "sqlmodel>=0.0.22",
     "aiosqlite>=0.21.0",
     "python-multipart>=0.0.20",
-    "sse-starlette>=2.2.0",
+    "alembic>=1.14.0",
 ]
 
 [build-system]
@@ -30,13 +30,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agent", "src/api", "src/cli", "src/clients", "src/compiler", "src/core", "src/db", "src/document"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"src/app.py" = "app.py"
+packages = ["src/notes2latex"]
 
 [project.scripts]
-notes2latex = "cli.cli:app"
+notes2latex = "notes2latex.cli:app"
 
 [dependency-groups]
 dev = [
