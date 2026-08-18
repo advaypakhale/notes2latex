@@ -1,21 +1,56 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.1
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-      - id: ruff-check
-        types_or: [python, pyi]
-        args: [--fix]
-      - id: ruff-format
-        types_or: [python, pyi]
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        # Raised for uv.lock, which is half a megabyte and only grows.
+        args: [--maxkb=1024]
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        # tsconfig files are JSONC and may carry comments.
+        exclude: ^frontend/tsconfig.*\.json$
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.38.0
+    hooks:
+      - id: check-github-workflows
+      - id: check-dependabot
+
+  # ruff comes from the project's own dev dependencies so the hook, `make lint`
+  # and CI all run the version pinned in uv.lock.
+  #
+  # eslint and prettier run from frontend/ against its local config and plugins,
+  # so paths arrive prefixed with frontend/ and have to be stripped.
   - repo: local
     hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
       - id: frontend-eslint
         name: frontend eslint
-        entry: bash -c 'cd frontend && npx eslint "${@#frontend/}"' --
+        entry: bash -c 'cd frontend && test -d node_modules || { echo "frontend deps missing — run make install" >&2; exit 1; }; npx --no-install eslint "${@#frontend/}"' --
         language: system
-        files: ^frontend/.*\.(ts|tsx)$
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        require_serial: true
       - id: frontend-prettier
         name: frontend prettier
-        entry: bash -c 'cd frontend && npx prettier --write "${@#frontend/}"' --
+        entry: bash -c 'cd frontend && test -d node_modules || { echo "frontend deps missing — run make install" >&2; exit 1; }; npx --no-install prettier --write "${@#frontend/}"' --
         language: system
-        files: ^frontend/.*\.(ts|tsx|css|json)$
+        files: ^frontend/.*\.(ts|tsx|js|jsx|css|html|json|md)$
+        exclude: ^frontend/(package-lock\.json|node_modules/)
+        require_serial: true
