@@ -1,6 +1,7 @@
 """Tests for LaTeX compilation, log parsing, and document assembly."""
 
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -15,18 +16,18 @@ requires_latexmk = pytest.mark.skipif(
 
 
 class TestParseErrors:
-    def test_no_errors(self):
+    def test_no_errors(self) -> None:
         log = "This is output\nNo errors here\n"
         assert parse_errors(log) == []
 
-    def test_single_error_with_line(self):
+    def test_single_error_with_line(self) -> None:
         log = "Some output\n! Undefined control sequence.\nl.42 \\badcommand\nmore output\n"
         errors = parse_errors(log)
         assert len(errors) == 1
         assert errors[0].line == 42
         assert "Undefined control sequence" in errors[0].message
 
-    def test_multiple_errors(self):
+    def test_multiple_errors(self) -> None:
         log = (
             "! Missing $ inserted.\n"
             "l.10 some code\n"
@@ -39,41 +40,41 @@ class TestParseErrors:
         assert errors[0].line == 10
         assert errors[1].line == 25
 
-    def test_error_without_line_number(self):
+    def test_error_without_line_number(self) -> None:
         log = "! Emergency stop.\n\nsome other text\n"
         errors = parse_errors(log)
         assert len(errors) == 1
         assert errors[0].line is None
         assert "Emergency stop" in errors[0].message
 
-    def test_empty_log(self):
+    def test_empty_log(self) -> None:
         assert parse_errors("") == []
 
 
 class TestOpenEnvironments:
-    def test_empty_string(self):
+    def test_empty_string(self) -> None:
         assert open_environments("") == []
 
-    def test_no_environments(self):
+    def test_no_environments(self) -> None:
         assert open_environments(r"Hello $x^2$ world") == []
 
-    def test_closed_environment(self):
+    def test_closed_environment(self) -> None:
         latex = r"\begin{theorem}Some theorem.\end{theorem}"
         assert open_environments(latex) == []
 
-    def test_open_environment(self):
+    def test_open_environment(self) -> None:
         latex = r"\begin{enumerate}\item First"
         assert open_environments(latex) == ["enumerate"]
 
-    def test_nested_open(self):
+    def test_nested_open(self) -> None:
         latex = r"\begin{theorem}" "\n" r"\begin{align}" "\n" r"x &= 1"
         assert open_environments(latex) == ["theorem", "align"]
 
-    def test_partially_closed(self):
+    def test_partially_closed(self) -> None:
         latex = r"\begin{theorem}" "\n" r"\begin{align}" "\n" r"x &= 1" "\n" r"\end{align}"
         assert open_environments(latex) == ["theorem"]
 
-    def test_multiple_open_close(self):
+    def test_multiple_open_close(self) -> None:
         latex = (
             r"\begin{theorem}Thm.\end{theorem}"
             "\n"
@@ -87,13 +88,13 @@ class TestOpenEnvironments:
 
 
 class TestAssembleDocument:
-    def test_assembles_correctly(self):
+    def test_assembles_correctly(self) -> None:
         doc = assemble_document("Hello $x^2$.", DEFAULT_PREAMBLE)
         assert doc.startswith(DEFAULT_PREAMBLE)
         assert "Hello $x^2$." in doc
         assert doc.strip().endswith(r"\end{document}")
 
-    def test_empty_body(self):
+    def test_empty_body(self) -> None:
         doc = assemble_document("", DEFAULT_PREAMBLE)
         assert r"\begin{document}" in doc
         assert r"\end{document}" in doc
@@ -101,14 +102,14 @@ class TestAssembleDocument:
 
 @requires_latexmk
 class TestCompileLatex:
-    def test_valid_document(self, tmp_path):
+    def test_valid_document(self, tmp_path: Path) -> None:
         latex = "\\documentclass{article}\n\\begin{document}\nHello $x^2$.\n\\end{document}\n"
         result = compile_latex(latex, pdf_dest=tmp_path / "out.pdf")
         assert result.success
         assert result.pdf_path == tmp_path / "out.pdf"
         assert result.pdf_path.exists()
 
-    def test_invalid_document(self):
+    def test_invalid_document(self) -> None:
         latex = (
             "\\documentclass{article}\n\\begin{document}\n\\undefinedcommandxyz\n\\end{document}\n"
         )
@@ -116,7 +117,7 @@ class TestCompileLatex:
         assert not result.success
         assert len(result.errors) > 0
 
-    def test_log_output_captured(self):
+    def test_log_output_captured(self) -> None:
         latex = "\\documentclass{article}\n\\begin{document}\nHello.\n\\end{document}\n"
         result = compile_latex(latex)
         assert len(result.log_output) > 0

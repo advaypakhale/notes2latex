@@ -55,9 +55,11 @@ def compile_latex(
         ]
 
         try:
-            proc = subprocess.run(
+            # A fixed argv with no shell, built from server settings and the scratch path.
+            proc = subprocess.run(  # noqa: S603
                 cmd,
                 capture_output=True,
+                check=False,
                 text=True,
                 timeout=compile_timeout,
                 cwd=str(work_dir),

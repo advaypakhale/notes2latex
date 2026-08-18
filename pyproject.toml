@@ -46,12 +46,29 @@ dev = [
 target-version = "py312"
 line-length = 100
 
-# Stated explicitly so a ruff upgrade cannot silently change what is enforced.
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF"]
-# JobStatus and JobPhase subclass str for SQLModel column mapping; StrEnum would
-# change what str() returns for them.
-ignore = ["UP042"]
+select = ["ALL"]
+ignore = [
+    # A docstring that restates the signature is noise; the places that warrant
+    # prose already have one.
+    "D1",
+    # ruff documents both as conflicting with the formatter.
+    "COM812",
+    "ISC001",
+    # Each contradicts a sibling rule (D211, D212) that ruff resolves in favour of.
+    "D203",
+    "D213",
+    # This project does not put copyright headers on files.
+    "CPY001",
+    # JobStatus and JobPhase subclass str for SQLModel column mapping; StrEnum
+    # would change what str() returns for them.
+    "UP042",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Asserting is what a test does, and the expected values it asserts against are the
+# point of the test rather than magic numbers to be named.
+"tests/**" = ["S101", "PLR2004"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

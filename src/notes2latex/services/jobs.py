@@ -101,7 +101,8 @@ async def _editing(job_id: str) -> AsyncIterator[Job]:
     async with AsyncSession(engine) as session:
         job = await session.get(Job, job_id)
         if job is None:
-            raise LookupError(f"Unknown job id: {job_id}")
+            msg = f"Unknown job id: {job_id}"
+            raise LookupError(msg)
         yield job
         await session.commit()
 

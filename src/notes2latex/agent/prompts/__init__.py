@@ -14,7 +14,10 @@ def _read(name: str) -> str:
 DEFAULT_PREAMBLE = _read("preamble.tex")
 FIX_ERRORS_PROMPT = _read("fix_errors.md")
 
-_TRANSCRIBE_TEMPLATE = Environment().from_string(_read("transcribe.md"))
+# Prompts are markdown and LaTeX, not HTML; autoescaping would corrupt them.
+_TRANSCRIBE_TEMPLATE = Environment(autoescape=False).from_string(  # noqa: S701
+    _read("transcribe.md")
+)
 
 
 def transcribe_prompt(page_number: int, open_envs: list[str]) -> str:

@@ -19,7 +19,8 @@ def page_line_offset(tex_source: str, page_number: int) -> int:
     """
     starts = [m.start() for m in _MARKER_RE.finditer(tex_source) if int(m.group(1)) == page_number]
     if not starts:
-        raise LookupError(f"No marker for page {page_number}")
+        msg = f"No marker for page {page_number}"
+        raise LookupError(msg)
     # A transcription is prompted with earlier pages as context and can echo a marker back
     # into its output. The one append_page wrote is always the last.
     return tex_source.count("\n", 0, starts[-1]) + 1

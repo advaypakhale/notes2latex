@@ -27,14 +27,15 @@ async def upgrade_to_head() -> None:
         async with engine.begin() as conn:
             await conn.run_sync(_upgrade)
     except Exception as exc:
-        raise MigrationError(
+        msg = (
             f"notes2latex: could not upgrade the database at {DB_PATH}.\n"
             "\n"
             f"  {exc}\n"
             "\n"
             "The server does not start until that file is at the current schema. Restore\n"
             "it from a backup, or move it aside to start from an empty one, then restart."
-        ) from exc
+        )
+        raise MigrationError(msg) from exc
     finally:
         # The connection this leaves pooled belongs to the loop that ran the migration,
         # which is not always the loop that goes on to serve requests.

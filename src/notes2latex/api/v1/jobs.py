@@ -49,8 +49,9 @@ def _config_errors(exc: ValidationError) -> str:
 def _save_uploads(files: list[UploadFile], input_dir: Path, limit: int) -> list[str]:
     """Stream uploads into input_dir, returning their names in the order they were sent.
 
-    Names are reduced to their last path component. Raises HTTPException for a name that
-    is not a filename, or once the uploads together exceed `limit` bytes.
+    Names are reduced to their last path component. Raises HTTPException if nothing was
+    uploaded, for a name that is not a filename, or once the uploads together exceed
+    `limit` bytes.
     """
     names: list[str] = []
     remaining = limit
@@ -72,14 +73,12 @@ def _save_uploads(files: list[UploadFile], input_dir: Path, limit: int) -> list[
                     )
                 dest.write(chunk)
         names.append(name)
+    if not names:
+        raise HTTPException(status_code=400, detail="No files uploaded")
     return names
 
 
-@router.post(
-    "",
-    response_model=JobResponse,
-    responses={400: {"model": ErrorResponse}, 413: {"model": ErrorResponse}},
-)
+@router.post("", responses={400: {"model": ErrorResponse}, 413: {"model": ErrorResponse}})
 async def create_job(
     files: list[UploadFile],
     session: SessionDep,
@@ -109,8 +108,6 @@ async def create_job(
         filenames = await asyncio.to_thread(
             _save_uploads, files, input_dir, settings.max_upload_bytes
         )
-        if not filenames:
-            raise HTTPException(status_code=400, detail="No files uploaded")
     except HTTPException:
         await asyncio.to_thread(shutil.rmtree, jobs.job_dir(job_id), ignore_errors=True)
         raise
@@ -124,7 +121,7 @@ async def create_job(
     return JobResponse.model_validate(job)
 
 
-@router.get("", response_model=list[JobResponse])
+@router.get("")
 async def list_jobs(
     session: SessionDep,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
@@ -133,7 +130,7 @@ async def list_jobs(
     return [JobResponse.model_validate(job) for job in await jobs.recent(session, limit)]
 
 
-@router.get("/{job_id}", response_model=JobResponse, responses=NOT_FOUND)
+@router.get("/{job_id}", responses=NOT_FOUND)
 async def get_job(job_id: JobId, session: SessionDep) -> JobResponse:
     return JobResponse.model_validate(await load_job(session, job_id))
 
@@ -145,7 +142,7 @@ async def delete_job(job_id: JobId, session: SessionDep) -> Response:
     return Response(status_code=204)
 
 
-@router.get("/{job_id}/pages", response_model=PagesResponse, responses=NOT_FOUND)
+@router.get("/{job_id}/pages", responses=NOT_FOUND)
 async def get_job_pages(job_id: JobId, session: SessionDep) -> PagesResponse:
     """Report the job's page count, falling back to counting page markers in the .tex."""
     job = await load_job(session, job_id)
@@ -204,6 +201,7 @@ def _zip_outputs(output_dir: Path) -> bytes:
 async def download_file(
     job_id: JobId,
     filename: SafeFilename,
+    *,
     download: Annotated[
         bool, Query(description="Send as an attachment rather than inline")
     ] = False,
@@ -236,9 +234,7 @@ async def get_page_image(job_id: JobId, page_number: PageNumber) -> FileResponse
     return FileResponse(image_path, media_type="image/png")
 
 
-@router.get(
-    "/{job_id}/pages/{page_number}/latex", response_model=PageLatexResponse, responses=NOT_FOUND
-)
+@router.get("/{job_id}/pages/{page_number}/latex", responses=NOT_FOUND)
 async def get_page_latex(job_id: JobId, page_number: PageNumber) -> PageLatexResponse:
     """Return the LaTeX generated for a single page."""
     tex = jobs.outputs(job_id).tex

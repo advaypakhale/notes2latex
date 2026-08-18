@@ -1,4 +1,4 @@
-"""add job progress columns
+"""add job progress columns.
 
 Revision ID: 1da127bc4047
 Revises: d239466fbb2a

@@ -1,5 +1,6 @@
 """FastAPI application — web UI backend."""
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -18,7 +19,7 @@ _INDEX_HTML = _FRONTEND_DIST / "index.html"
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     await upgrade_to_head()
     await jobs.recover_interrupted()
     yield
@@ -30,7 +31,7 @@ app.include_router(v1_router)
 if _INDEX_HTML.is_file():
 
     @app.get("/{path:path}", include_in_schema=False)
-    async def frontend(path: str) -> FileResponse:
+    def frontend(path: str) -> FileResponse:
         """Serve a built asset, or the SPA shell so client-side routes survive a refresh."""
         # An unmatched API path is a mistake, not a client-side route.
         if path.startswith("api/"):

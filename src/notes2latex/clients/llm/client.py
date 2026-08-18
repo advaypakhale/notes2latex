@@ -29,5 +29,6 @@ async def complete_text(
     )
     content = response.choices[0].message.content
     if not content:
-        raise ValueError(f"{model} returned an empty response")
+        msg = f"{model} returned an empty response"
+        raise ValueError(msg)
     return content

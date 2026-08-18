@@ -28,15 +28,15 @@ def load_pages(
                 _check_page_size(img.width, img.height, max_page_pixels, file_path.name)
                 pages.append(_pil_to_base64(img.convert("RGB")))
         else:
-            raise ValueError(f"Unsupported file type: {suffix}")
+            msg = f"Unsupported file type: {suffix}"
+            raise ValueError(msg)
     return pages
 
 
 def _check_page_size(width: int, height: int, max_page_pixels: int, source: str) -> None:
     if width * height > max_page_pixels:
-        raise ValueError(
-            f"{source} is {width}x{height} pixels, above the {max_page_pixels} pixel limit"
-        )
+        msg = f"{source} is {width}x{height} pixels, above the {max_page_pixels} pixel limit"
+        raise ValueError(msg)
 
 
 def _pdf_to_base64_pages(pdf_path: Path, dpi: int, max_page_pixels: int) -> list[str]:

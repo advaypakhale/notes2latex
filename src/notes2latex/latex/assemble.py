@@ -30,11 +30,11 @@ def open_environments(latex: str) -> list[str]:
 
 
 def assemble_document(body: str, preamble: str) -> str:
-    """Wrap body content in the given preamble, closing anything the body left open.
+    r"""Wrap body content in the given preamble, closing anything the body left open.
 
     A page of transcribed notes routinely ends mid-environment — the transcription prompt
-    asks the model to carry environments across page boundaries — so an \\end for each is
-    emitted before \\end{document}.
+    asks the model to carry environments across page boundaries — so an \end for each is
+    emitted before \end{document}.
     """
     closes = "".join(rf"\end{{{env}}}" + "\n" for env in reversed(open_environments(body)))
     return preamble + "\n" + body + "\n" + closes + "\\end{document}\n"

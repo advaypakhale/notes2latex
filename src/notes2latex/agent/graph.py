@@ -350,5 +350,6 @@ async def run_pipeline(
             await on_progress(update)
 
     if result is None:
-        raise RuntimeError(f"The pipeline stopped before finalizing {len(pages)} page(s)")
+        msg = f"The pipeline stopped before finalizing {len(pages)} page(s)"
+        raise RuntimeError(msg)
     return result
