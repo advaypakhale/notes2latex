@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+import uvicorn
 from rich.console import Console
 from rich.logging import RichHandler
 
@@ -88,9 +89,6 @@ def serve(
     port: Annotated[int, typer.Option("--port", "-p", help="Bind port")] = 8000,
 ) -> None:
     """Start the web UI server."""
-    # Deferred: uvicorn costs a quarter of a second to import, and no other command needs it.
-    import uvicorn  # noqa: PLC0415
-
     # Ahead of uvicorn so a database that cannot be upgraded is reported on its own.
     # Startup migrates too, which covers uvicorn being run directly.
     try:
