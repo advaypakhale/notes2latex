@@ -1,6 +1,6 @@
 """Database models for job tracking."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 from sqlalchemy import JSON, Column
@@ -30,7 +30,7 @@ class Job(SQLModel, table=True):
     model: str = Field(default="")
     total_pages: int = Field(default=0)
     current_page: int = Field(default=0)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     completed_at: datetime | None = Field(default=None)
     error_message: str | None = Field(default=None)
     input_filenames: list[str] = Field(default_factory=list, sa_column=Column(JSON))

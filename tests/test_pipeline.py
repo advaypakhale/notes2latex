@@ -5,11 +5,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from PIL import Image
 
-from notes2latex.latex.compile import CompilerResult
 from notes2latex.agent.config import RunConfig
 from notes2latex.agent.graph import route_after_advance, route_after_compile, run_pipeline
 from notes2latex.agent.prompts import DEFAULT_PREAMBLE
 from notes2latex.agent.state import PipelineState
+from notes2latex.latex.compile import CompilerResult
 
 MOCK_BODY = "Hello $x^2$."
 

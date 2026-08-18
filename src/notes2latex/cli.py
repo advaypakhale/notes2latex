@@ -10,10 +10,10 @@ from rich.console import Console
 from rich.logging import RichHandler
 
 from notes2latex import __version__
-from notes2latex.core.config import get_settings
-from notes2latex.db.migrate import MigrationError, upgrade_to_head
 from notes2latex.agent.config import RunConfig
 from notes2latex.agent.graph import run_pipeline
+from notes2latex.core.config import get_settings
+from notes2latex.db.migrate import MigrationError, upgrade_to_head
 
 app = typer.Typer(
     name="notes2latex",

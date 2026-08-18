@@ -2,8 +2,8 @@
 
 from typing import TypedDict
 
-from notes2latex.latex.compile import LatexError
 from notes2latex.agent.config import RunConfig
+from notes2latex.latex.compile import LatexError
 
 
 class PipelineState(TypedDict, total=False):

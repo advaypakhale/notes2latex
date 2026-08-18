@@ -2,7 +2,8 @@
 
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Path as PathParam
+from fastapi import Depends, HTTPException
+from fastapi import Path as PathParam
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from notes2latex.db.models import Job

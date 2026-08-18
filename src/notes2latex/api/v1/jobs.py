@@ -12,6 +12,7 @@ from fastapi import APIRouter, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, Response
 from pydantic import ValidationError
 
+from notes2latex.agent.config import RunConfig
 from notes2latex.api.deps import JobId, PageNumber, SafeFilename, SessionDep, load_job
 from notes2latex.api.v1.schemas import (
     NOT_FOUND,
@@ -23,7 +24,6 @@ from notes2latex.api.v1.schemas import (
 )
 from notes2latex.core.config import get_settings
 from notes2latex.latex.markers import page_numbers, split_by_page
-from notes2latex.agent.config import RunConfig
 from notes2latex.services import jobs
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])

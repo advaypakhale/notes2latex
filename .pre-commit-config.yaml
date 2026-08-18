@@ -22,19 +22,25 @@ repos:
       - id: check-github-workflows
       - id: check-dependabot
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.3
-    hooks:
-      - id: ruff-check
-        types_or: [python, pyi]
-        args: [--fix]
-      - id: ruff-format
-        types_or: [python, pyi]
-
+  # ruff comes from the project's own dev dependencies so the hook, `make lint`
+  # and CI all run the version pinned in uv.lock.
+  #
   # eslint and prettier run from frontend/ against its local config and plugins,
   # so paths arrive prefixed with frontend/ and have to be stripped.
   - repo: local
     hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
       - id: frontend-eslint
         name: frontend eslint
         entry: bash -c 'cd frontend && test -d node_modules || { echo "frontend deps missing — run make install" >&2; exit 1; }; npx --no-install eslint "${@#frontend/}"' --

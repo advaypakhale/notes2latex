@@ -17,19 +17,19 @@ from litellm.types.completion import (
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from notes2latex.agent.config import RunConfig
 from notes2latex.agent.ingest import load_pages
+from notes2latex.agent.prompts import FIX_ERRORS_PROMPT, transcribe_prompt
+from notes2latex.agent.state import PipelineState
+from notes2latex.clients.llm.client import complete_text
 from notes2latex.db.models import JobPhase
-from notes2latex.latex.compile import LatexError, compile_latex
 from notes2latex.latex.assemble import (
     assemble_document,
     open_environments,
     strip_preamble_from_body,
 )
+from notes2latex.latex.compile import LatexError, compile_latex
 from notes2latex.latex.markers import append_page, page_line_offset
-from notes2latex.clients.llm.client import complete_text
-from notes2latex.agent.config import RunConfig
-from notes2latex.agent.prompts import FIX_ERRORS_PROMPT, transcribe_prompt
-from notes2latex.agent.state import PipelineState
 
 logger = logging.getLogger(__name__)
 

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from notes2latex.agent.prompts import DEFAULT_PREAMBLE
 from notes2latex.core.config import RunOptions, Settings
 from notes2latex.core.outputs import JobOutputs
-from notes2latex.agent.prompts import DEFAULT_PREAMBLE
 
 
 class RunConfig(RunOptions):

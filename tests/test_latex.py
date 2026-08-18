@@ -4,9 +4,9 @@ import shutil
 
 import pytest
 
-from notes2latex.latex.compile import compile_latex, parse_errors
-from notes2latex.latex.assemble import assemble_document, open_environments
 from notes2latex.agent.prompts import DEFAULT_PREAMBLE
+from notes2latex.latex.assemble import assemble_document, open_environments
+from notes2latex.latex.compile import compile_latex, parse_errors
 
 requires_latexmk = pytest.mark.skipif(
     shutil.which("latexmk") is None,

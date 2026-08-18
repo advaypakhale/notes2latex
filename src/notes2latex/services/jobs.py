@@ -6,18 +6,18 @@ import functools
 import logging
 import shutil
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlmodel import col, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from notes2latex.core.config import get_settings
-from notes2latex.db.models import Job, JobStatus
-from notes2latex.db.session import engine
-from notes2latex.core.outputs import JobOutputs
 from notes2latex.agent.config import RunConfig
 from notes2latex.agent.graph import PipelineResult, Progress, run_pipeline
+from notes2latex.core.config import get_settings
+from notes2latex.core.outputs import JobOutputs
+from notes2latex.db.models import Job, JobStatus
+from notes2latex.db.session import engine
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ async def _record_completion(job_id: str, result: PipelineResult) -> None:
     async with _editing(job_id) as job:
         job.status = JobStatus.COMPLETED
         job.phase = None
-        job.completed_at = datetime.now(timezone.utc)
+        job.completed_at = datetime.now(UTC)
         job.total_pages = result.total_pages
         job.has_tex = result.has_tex
         job.has_pdf = result.has_pdf
@@ -128,7 +128,7 @@ async def _record_failure(job_id: str, message: str) -> None:
     async with _editing(job_id) as job:
         job.status = JobStatus.FAILED
         job.phase = None
-        job.completed_at = datetime.now(timezone.utc)
+        job.completed_at = datetime.now(UTC)
         job.error_message = message
 
 
@@ -141,7 +141,7 @@ async def recover_interrupted() -> None:
             .values(
                 status=JobStatus.FAILED,
                 phase=None,
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
                 error_message="Interrupted by a server restart",
             )
         )

@@ -1,6 +1,6 @@
 """Request and response models for the v1 API."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -51,7 +51,7 @@ class JobResponse(BaseModel):
     def _as_utc(cls, value: datetime | None) -> datetime | None:
         """SQLite stores datetimes without a zone; the stored values are UTC."""
         if value is not None and value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
+            return value.replace(tzinfo=UTC)
         return value
 
 
